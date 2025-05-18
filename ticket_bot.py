@@ -296,7 +296,7 @@ async def vouch(
         color=discord.Color.gold(),
         timestamp=datetime.datetime.utcnow()
     )
-    embed.set_footer(text="Sistema de Ventas | Miluty", icon_url=bot.user.display_avatar.url)
+    embed.set_footer(text="Sistema de Ventas | ", icon_url=bot.user.display_avatar.url)
 
     if imagen:
         embed.set_image(url=imagen.url)
