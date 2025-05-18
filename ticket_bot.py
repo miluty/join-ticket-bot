@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands
 import datetime
 import random
+from discord import app_commands
 
 
 intents = discord.Intents.all()
