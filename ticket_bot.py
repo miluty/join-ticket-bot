@@ -209,6 +209,10 @@ async def ventahecha(interaction: discord.Interaction):
     )
 @bot.tree.command(name="price", description="💰 Muestra la lista de precios de Coins y Robux")
 async def price(interaction: discord.Interaction):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Comando no disponible aquí.", ephemeral=True)
+        return
+
     embed = discord.Embed(
         title="💎 Tabla de Precios - Coins y Robux",
         description=(
@@ -238,7 +242,5 @@ async def price(interaction: discord.Interaction):
         timestamp=datetime.datetime.utcnow()
     )
     embed.set_footer(text="Sistema de Ventas | Miluty")
-    embed.set_thumbnail(url="https://i.imgur.com/yourThumbnail.png")  # Cambia por una imagen bonita de monedas o robux
-    embed.set_author(name="💰 Precios de Coins", icon_url="https://i.imgur.com/yourIcon.png")  # Cambia por un icono adecuado
-    
     await interaction.response.send_message(embed=embed)
+
