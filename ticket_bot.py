@@ -337,3 +337,39 @@ async def ruleta(interaction: discord.Interaction, premio: str):
     embed.set_footer(text=f"Ruleta por {interaction.user}", icon_url=interaction.user.display_avatar.url)
 
     await interaction.response.send_message(embed=embed)
+    @bot.tree.command(name="anuncio", description="📢 Envía un anuncio con @everyone y opcionalmente una imagen")
+@app_commands.describe(
+    canal="Canal donde se enviará el anuncio",
+    mensaje="Contenido del anuncio",
+    imagen="Imagen adjunta opcional"
+)
+@app_commands.checks.has_permissions(administrator=True)
+async def anuncio(
+    interaction: discord.Interaction,
+    canal: discord.TextChannel,
+    mensaje: str,
+    imagen: discord.Attachment = None
+):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("❌ No tienes permisos para usar este comando.", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="📢 ¡ANUNCIO IMPORTANTE!",
+        description=mensaje,
+        color=discord.Color.orange(),
+        timestamp=datetime.datetime.utcnow()
+    )
+
+    embed.add_field(name="🔔 Atención:", value="Este mensaje es para **todos** los miembros del servidor.", inline=False)
+    embed.add_field(name="📅 Fecha del anuncio:", value=f"{datetime.datetime.utcnow().strftime('%d/%m/%Y %H:%M UTC')}", inline=True)
+    embed.set_footer(text=f"Anuncio enviado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
+    embed.set_thumbnail(url="https://i.imgur.com/jNNT4LE.png")  # Icono decorativo de megáfono
+
+    if imagen:
+        embed.set_image(url=imagen.url)
+    else:
+        embed.set_image(url="https://i.imgur.com/UYI9HOq.png")  # Imagen genérica opcional
+
+    await canal.send(content="@everyone", embed=embed)
+    await interaction.response.send_message(f"✅ Anuncio enviado correctamente en {canal.mention}", ephemeral=True)
