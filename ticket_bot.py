@@ -76,19 +76,20 @@ class ClaimView(discord.ui.View):
         super().__init__(timeout=None)
         self.channel = channel
 
-    @discord.ui.button(label="🎟️ Reclamar Ticket", style=discord.ButtonStyle.primary)
-    async def claim_button(self, button: discord.ui.Button, interaction: discord.Interaction):
-        if self.channel.id in claimed_tickets:
-            await interaction.response.send_message("❌ Este ticket ya fue reclamado.", ephemeral=True)
-            return
-        claimed_tickets[self.channel.id] = interaction.user.id
-        await interaction.response.edit_message(embed=discord.Embed(
-            title="🎟️ Ticket Reclamado",
-            description=f"✅ Reclamado por: {interaction.user.mention}",
-            color=discord.Color.blue(),
-            timestamp=datetime.datetime.utcnow()
-        ), view=None)
-        await self.channel.send(f"{interaction.user.mention} ha reclamado este ticket.")
+@discord.ui.button(label="🎟️ Reclamar Ticket", style=discord.ButtonStyle.primary)
+async def claim_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    if self.channel.id in claimed_tickets:
+        await interaction.response.send_message("❌ Este ticket ya fue reclamado.", ephemeral=True)
+        return
+    claimed_tickets[self.channel.id] = interaction.user.id
+    await interaction.response.edit_message(embed=discord.Embed(
+        title="🎟️ Ticket Reclamado",
+        description=f"✅ Reclamado por: {interaction.user.mention}",
+        color=discord.Color.blue(),
+        timestamp=datetime.datetime.utcnow()
+    ), view=None)
+    await self.channel.send(f"{interaction.user.mention} ha reclamado este ticket.")
+
 
 class PanelView(discord.ui.View):
     def __init__(self):
