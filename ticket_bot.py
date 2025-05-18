@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands
 import datetime
 import random
+import asyncio
 from discord import app_commands
 
 
@@ -260,46 +261,61 @@ async def price(interaction: discord.Interaction):
     embed.set_footer(text="✨ ¡Gracias por elegirnos! / Thanks for choosing us! ✨")
 
     await interaction.response.send_message(embed=embed)
-@bot.tree.command(name="random", description="🎉 Sortea un miembro aleatorio del servidor (con ruleta)")
-@app_commands.describe(
-    premio="¿Qué premio estás sorteando? Ej: '10,000 Coins'"
-)
-async def random(interaction: discord.Interaction, premio: str):
-    if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
+import discord
+from discord import app_commands
+from discord.ext import commands
+import asyncio
+import random
+
+class RuletaView(discord.ui.View):
+    def __init__(self, timeout: int):
+        super().__init__(timeout=timeout)
+        self.participantes = []
+
+    @discord.ui.button(label="🎯 Participar en la ruleta", style=discord.ButtonStyle.green)
+    async def participar(self, interaction: discord.Interaction, button: discord.ui.Button):
+        usuario = interaction.user
+        if usuario in self.participantes:
+            await interaction.response.send_message("Ya estás participando en la ruleta.", ephemeral=True)
+        else:
+            self.participantes.append(usuario)
+            await interaction.response.send_message("¡Te has unido a la ruleta!", ephemeral=True)
+
+# Comando slash para iniciar la ruleta
+@bot.tree.command(name="ruleta", description="Inicia una ruleta con duración personalizada.")
+@app_commands.describe(duracion="Duración en segundos para que la gente participe")
+async def ruleta(interaction: discord.Interaction, duracion: int):
+    if duracion < 5 or duracion > 300:
+        await interaction.response.send_message("Por favor elige una duración entre 5 y 300 segundos.", ephemeral=True)
         return
 
-    await interaction.response.defer()
+    view = RuletaView(timeout=duracion)
 
-    # Obtener miembros válidos (no bots)
-    members = [m for m in interaction.guild.members if not m.bot and m.status != discord.Status.offline]
-    if not members:
-        await interaction.followup.send("❌ No hay miembros válidos conectados para el sorteo.")
-        return
-
-    # Mensaje inicial
     embed = discord.Embed(
-        title="🎡 ¡Iniciando la ruleta!",
-        description="Girando nombres...",
-        color=discord.Color.orange()
+        title="🎰 ¡Ruleta de la suerte!",
+        description=f"Haz clic en el botón para participar.\nTiempo restante: **{duracion} segundos**",
+        color=discord.Color.random()
     )
-    msg = await interaction.followup.send(embed=embed)
+    embed.set_footer(text="El ganador será elegido aleatoriamente al finalizar el tiempo.")
 
-    # Simular ruleta (mostrar varios nombres antes del resultado)
-    for _ in range(10):
-        nombre = random.choice(members).display_name
-        embed.description = f"🎲 Girando... **{nombre}**"
-        await msg.edit(embed=embed)
-        await discord.utils.sleep_until(datetime.datetime.utcnow() + datetime.timedelta(milliseconds=400))
+    await interaction.response.send_message(embed=embed, view=view)
+    mensaje = await interaction.original_response()
 
-    # Elegir ganador final
-    ganador = random.choice(members)
-    embed = discord.Embed(
-        title="🎉 ¡Tenemos un ganador!",
-        description=f"🏆 **{ganador.mention}** ha ganado **{premio}** 🎁",
-        color=discord.Color.green(),
-        timestamp=datetime.datetime.utcnow()
-    )
-    embed.set_thumbnail(url=ganador.display_avatar.url)
-    embed.set_footer(text=f"Sorteado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
-    await msg.edit(embed=embed)
+    # Esperar a que termine el tiempo
+    await asyncio.sleep(duracion)
+
+    if view.participantes:
+        ganador = random.choice(view.participantes)
+        resultado = discord.Embed(
+            title="🎉 ¡Tenemos un ganador!",
+            description=f"🥇 Felicidades {ganador.mention}, has ganado la ruleta.",
+            color=discord.Color.gold()
+        )
+    else:
+        resultado = discord.Embed(
+            title="❌ Sin participantes",
+            description="Nadie participó en la ruleta.",
+            color=discord.Color.red()
+        )
+
+    await mensaje.edit(embed=resultado, view=None)
