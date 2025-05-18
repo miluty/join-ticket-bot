@@ -1,12 +1,9 @@
 import os
 import discord
 import datetime
-import random
 import asyncio
 from discord import app_commands
 from discord.ext import commands
-import discord
-
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -16,10 +13,9 @@ server_configs = [1317658154397466715]  # IDs de servidores permitidos
 ticket_category_id = 1373499892886016081  # Categoría donde se crean tickets
 vouch_channel_id = 1317725063893614633  # Canal donde se envían los vouches
 
-
 claimed_tickets = {}  # Para saber qué ticket está reclamado
 ticket_data = {}      # Para guardar datos de cada ticket
-user_balances = {}
+
 # Modal para ingresar datos de compra
 class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
     def __init__(self, tipo):
@@ -125,13 +121,12 @@ class PanelView(discord.ui.View):
 
 @bot.event
 async def on_ready():
-    await bot.wait_until_ready()  # <- importante
+    await bot.wait_until_ready()
     try:
         synced = await bot.tree.sync()
         print(f"✅ Comandos sincronizados correctamente: {len(synced)}")
     except Exception as e:
         print(f"❌ Error al sincronizar comandos: {e}")
-
 
 @bot.tree.command(name="panel", description="📩 Muestra el panel de tickets")
 async def panel(interaction: discord.Interaction):
@@ -232,13 +227,13 @@ async def price(interaction: discord.Interaction):
             "💡 *Cada 50,000 Coins → 140 Robux y $1 USD* / *Each 50,000 Coins → 140 Robux and $1 USD*\n"
             "🚀 ¡Haz tu pedido y empieza la aventura! / Make your order and start the adventure!"
         ),
-        color=0xE91E63,  # rosa vibrante y alegre
+        color=0xE91E63,
         timestamp=datetime.datetime.utcnow()
     )
 
-    embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")  # una imagen divertida de monedas o algo así
+    embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")
     embed.set_author(name="💎 Sistema de Precios / Price System", icon_url="https://i.imgur.com/3i1S0cL.png")
-    
+
     prices = [
         (50_000, 140, 1),
         (100_000, 280, 2),
@@ -258,7 +253,7 @@ async def price(interaction: discord.Interaction):
             value=f"💜 {robux} Robux\n💵 ${usd}.00 USD",
             inline=True,
         )
-    
+
     embed.set_footer(text="✨ ¡Gracias por elegirnos! / Thanks for choosing us! ✨")
 
     await interaction.response.send_message(embed=embed)
@@ -282,11 +277,9 @@ class Vouch(commands.Cog):
         app_commands.Choice(name="⭐️⭐️⭐️⭐️⭐️", value=5),
     ])
     async def vouch(self, interaction: discord.Interaction, producto: str, comprado_a: str, rating: app_commands.Choice[int], comentario: str = None):
-        # Primero verificamos si el usuario adjuntó alguna imagen/prueba en el mensaje
         attachments = interaction.message.attachments if interaction.message else []
         imagen_url = None
         if attachments:
-            # Solo tomamos la primera imagen (puedes modificar si quieres más)
             attachment = attachments[0]
             if attachment.content_type and attachment.content_type.startswith("image"):
                 imagen_url = attachment.url
@@ -305,14 +298,13 @@ class Vouch(commands.Cog):
         if imagen_url:
             embed.set_image(url=imagen_url)
 
-        canal_vouch_id = 1317725063893614633  # Cambia al canal donde quieras que se envíen los vouches
-        canal = interaction.guild.get_channel(canal_vouch_id)
-        if not canal:
+        canal_vouch = interaction.guild.get_channel(vouch_channel_id)
+        if not canal_vouch:
             await interaction.response.send_message("❌ No encontré el canal de vouches.", ephemeral=True)
             return
 
         await interaction.response.defer()
-        await canal.send(embed=embed)
+        await canal_vouch.send(embed=embed)
         await interaction.followup.send("✅ Vouch enviado correctamente.", ephemeral=True)
 
 async def setup(bot):
