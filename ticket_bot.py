@@ -1,15 +1,14 @@
 import discord
 from discord.ext import commands
-from discord import app_commands
 import datetime
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# IDs configurables
-server_configs = [1317658154397466715]  # Lista con IDs de servidores donde funciona el bot
-ticket_category_id = 1373499892886016081  # ID categoría tickets
-vouch_channel_id = 1317725063893614633  # ID canal vouches
+# Configura aquí tus IDs
+server_configs = [1317658154397466715]  # IDs de servidores permitidos
+ticket_category_id = 1373499892886016081  # ID categoría donde se crean tickets
+vouch_channel_id = 1317725063893614633  # ID canal donde se envían vouches
 
 claimed_tickets = {}
 
@@ -17,11 +16,15 @@ claimed_tickets = {}
 async def on_ready():
     print(f"Bot conectado como {bot.user}")
     try:
-        synced = await bot.tree.sync()
-        print(f"Comandos sincronizados: {len(synced)}")
+        # Sincroniza comandos SOLO en los servidores configurados para que aparezcan rápido
+        for guild_id in server_configs:
+            guild = discord.Object(id=guild_id)
+            synced = await bot.tree.sync(guild=guild)
+            print(f"Sincronizados {len(synced)} comandos en guild {guild_id}")
     except Exception as e:
-        print(f"Error al sincronizar comandos: {e}")
+        print(f"Error sincronizando comandos: {e}")
 
+# Panel con menú desplegable para crear tickets
 @bot.tree.command(name="panel", description="📩 Muestra el panel de tickets de venta")
 async def panel(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
@@ -34,7 +37,11 @@ async def panel(interaction: discord.Interaction):
         discord.SelectOption(label="🍍 Farmeo Fruta", value="fruta", description="Servicio de farmeo de frutas"),
     ]
 
-    select = discord.ui.Select(placeholder="Elige una opción / Choose an option", options=options, custom_id="ticket_select")
+    select = discord.ui.Select(
+        placeholder="Elige una opción / Choose an option",
+        options=options,
+        custom_id="ticket_select"
+    )
     view = discord.ui.View()
     view.add_item(select)
 
@@ -45,14 +52,14 @@ async def panel(interaction: discord.Interaction):
     )
     await interaction.response.send_message(embed=embed, view=view)
 
+# Captura la interacción del menú desplegable y crea el ticket
 @bot.event
 async def on_interaction(interaction: discord.Interaction):
-    # Filtrar interacciones solo para los servidores configurados
     if interaction.guild_id not in server_configs:
         return
 
-    if interaction.type == discord.InteractionType.component and interaction.data["custom_id"] == "ticket_select":
-        await interaction.response.defer()
+    if interaction.type == discord.InteractionType.component and interaction.data.get("custom_id") == "ticket_select":
+        await interaction.response.defer(ephemeral=True)
         selection = interaction.data["values"][0]
         user = interaction.user
 
@@ -117,7 +124,7 @@ async def close(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("❌ Este canal no es un ticket válido.", ephemeral=True)
 
-# Comando para marcar venta como completada
+# Comando para marcar venta como completada y enviar vouch
 @bot.tree.command(name="ventahecha", description="✅ Marca la venta como completada y envía un vouch")
 async def ventahecha(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
