@@ -1,19 +1,20 @@
 import os
 import discord
 from discord.ext import commands
-from discord import app_commands
 import datetime
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Configuración
+# Configuración - cambia estos IDs por los tuyos
 server_configs = [1317658154397466715]  # IDs de servidores permitidos
-ticket_category_id = 1373499892886016081  # Categoría de tickets
-vouch_channel_id = 1317725063893614633  # Canal de vouches
-claimed_tickets = {}
-ticket_data = {}  # Diccionario para guardar información de tickets
+ticket_category_id = 1373499892886016081  # Categoría donde se crean tickets
+vouch_channel_id = 1317725063893614633  # Canal donde se envían los vouches
 
+claimed_tickets = {}  # Para saber qué ticket está reclamado
+ticket_data = {}      # Para guardar datos de cada ticket
+
+# Modal para ingresar datos de compra
 class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
     def __init__(self, tipo):
         super().__init__()
@@ -53,7 +54,7 @@ class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
             topic=str(interaction.user.id)
         )
 
-        # Guardar datos del ticket
+        # Guardar datos para usar en /ventahecha
         ticket_data[channel.id] = {
             "producto": "🍉 Fruta" if self.tipo == "fruit" else "💰 Coins",
             "cantidad": self.cantidad.value,
@@ -78,6 +79,7 @@ class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
         await channel.send(content=interaction.user.mention, embed=embed_ticket, view=claim_view)
         await interaction.response.send_message(f"✅ Ticket creado: {channel.mention}", ephemeral=True)
 
+# Vista para reclamar ticket
 class ClaimView(discord.ui.View):
     def __init__(self, channel):
         super().__init__(timeout=None)
@@ -99,6 +101,7 @@ class ClaimView(discord.ui.View):
         await interaction.response.edit_message(embed=embed_reclamado, view=None)
         await self.channel.send(f"🛠️ {interaction.user.mention} ha reclamado este ticket.")
 
+# Vista para el panel de selección
 class PanelView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -106,9 +109,9 @@ class PanelView(discord.ui.View):
             discord.SelectOption(label="🍉 Comprar Fruta", value="fruit", description="Compra fruta premium"),
             discord.SelectOption(label="💰 Comprar Coins", value="coins", description="Compra monedas del juego"),
         ]
-        self.select = discord.ui.Select(placeholder="Selecciona un producto 🍽️", options=options)
-        self.select.callback = self.select_callback
-        self.add_item(self.select)
+        select = discord.ui.Select(placeholder="Selecciona un producto 🍽️", options=options)
+        select.callback = self.select_callback
+        self.add_item(select)
 
     async def select_callback(self, interaction: discord.Interaction):
         tipo = interaction.data['values'][0]
@@ -203,10 +206,11 @@ async def ventahecha(interaction: discord.Interaction):
             await interaction_btn.response.send_message("❌ Venta negada. El ticket sigue abierto.", ephemeral=True)
             self.stop()
 
-    await interaction.channel.send(
+    await interaction.response.send_message(
         "📩 **Esperando confirmación del cliente...**\nPor favor confirma que recibiste tu producto.",
         view=ConfirmView()
     )
+
 @bot.tree.command(name="price", description="💰 Muestra la lista de precios de Coins y Robux")
 async def price(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
@@ -226,21 +230,13 @@ async def price(interaction: discord.Interaction):
             "✨ 350,000 Coins = 1,120 Robux | $7.00 USD\n"
             "✨ 400,000 Coins = 1,280 Robux | $8.00 USD\n"
             "✨ 450,000 Coins = 1,440 Robux | $9.00 USD\n"
-            "✨ 500,000 Coins = 1,600 Robux | $10.00 USD\n"
-            "✨ 550,000 Coins = 1,760 Robux | $11.00 USD\n"
-            "✨ 600,000 Coins = 1,920 Robux | $12.00 USD\n"
-            "✨ 650,000 Coins = 2,080 Robux | $13.00 USD\n"
-            "✨ 700,000 Coins = 2,240 Robux | $14.00 USD\n"
-            "✨ 750,000 Coins = 2,400 Robux | $15.00 USD\n"
-            "✨ 800,000 Coins = 2,560 Robux | $16.00 USD\n"
-            "✨ 850,000 Coins = 2,720 Robux | $17.00 USD\n"
-            "✨ 900,000 Coins = 2,880 Robux | $18.00 USD\n"
-            "✨ 950,000 Coins = 3,040 Robux | $19.00 USD\n"
-            "✨ 1,000,000 Coins = 3,200 Robux | $20.00 USD"
+            "✨ 500,000 Coins = 1,600 Robux | $10.00 USD\n\n"
+            "💡 *Usa /ventahecha para confirmar tu compra y cerrar el ticket.*"
         ),
-        color=discord.Color.gold(),
+        color=discord.Color.purple(),
         timestamp=datetime.datetime.utcnow()
     )
-    embed.set_footer(text="Sistema de Ventas | Miluty")
+    embed.set_footer(text="Precios actualizados | Miluty", icon_url=bot.user.display_avatar.url)
     await interaction.response.send_message(embed=embed)
+
 
