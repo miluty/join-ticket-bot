@@ -5,9 +5,11 @@ import datetime
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
-server_configs = [ID_DEL_SERVER]  # Reemplaza con tu ID o lista de IDs
-ticket_category_id = ID_CATEGORIA_TICKETS  # Reemplaza con el ID de la categoría para tickets
-vouch_channel_id = ID_CANAL_DE_VOUCHES  # Reemplaza con el ID del canal para vouches
+
+# IDs configurables
+server_configs = [1317658154397466715]  # Lista con IDs de servidores donde funciona el bot
+ticket_category_id = 1373499892886016081  # ID categoría tickets
+vouch_channel_id = 1317725063893614633  # ID canal vouches
 
 claimed_tickets = {}
 
@@ -22,6 +24,10 @@ async def on_ready():
 
 @bot.tree.command(name="panel", description="📩 Muestra el panel de tickets de venta")
 async def panel(interaction: discord.Interaction):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Este comando no está disponible en este servidor.", ephemeral=True)
+        return
+
     options = [
         discord.SelectOption(label="🛒 Venta", value="venta", description="Abrir ticket de venta"),
         discord.SelectOption(label="💰 Coins", value="coins", description="Comprar coins de juegos"),
@@ -29,7 +35,6 @@ async def panel(interaction: discord.Interaction):
     ]
 
     select = discord.ui.Select(placeholder="Elige una opción / Choose an option", options=options, custom_id="ticket_select")
-
     view = discord.ui.View()
     view.add_item(select)
 
@@ -42,7 +47,12 @@ async def panel(interaction: discord.Interaction):
 
 @bot.event
 async def on_interaction(interaction: discord.Interaction):
+    # Filtrar interacciones solo para los servidores configurados
+    if interaction.guild_id not in server_configs:
+        return
+
     if interaction.type == discord.InteractionType.component and interaction.data["custom_id"] == "ticket_select":
+        await interaction.response.defer()
         selection = interaction.data["values"][0]
         user = interaction.user
 
@@ -53,8 +63,13 @@ async def on_interaction(interaction: discord.Interaction):
         }
 
         category = discord.utils.get(interaction.guild.categories, id=ticket_category_id)
+        if category is None:
+            await interaction.followup.send("❌ No se encontró la categoría de tickets configurada.", ephemeral=True)
+            return
+
+        channel_name = f"{selection}-{user.name}".lower()
         channel = await interaction.guild.create_text_channel(
-            name=f"{selection}-{user.name}",
+            name=channel_name,
             overwrites=overwrites,
             category=category
         )
@@ -79,7 +94,7 @@ async def on_interaction(interaction: discord.Interaction):
         claim_view.add_item(claim_button)
 
         await channel.send(
-            f"{user.mention} Bienvenido. Un staff te atenderá pronto.",
+            content=f"{user.mention} Bienvenido. Un staff te atenderá pronto.",
             embed=discord.Embed(
                 title="💼 Ticket de Venta",
                 description="Presiona el botón si deseas reclamar este ticket.",
@@ -88,11 +103,15 @@ async def on_interaction(interaction: discord.Interaction):
             view=claim_view
         )
 
-        await interaction.response.send_message(f"✅ Ticket creado: {channel.mention}", ephemeral=True)
+        await interaction.followup.send(f"✅ Ticket creado: {channel.mention}", ephemeral=True)
 
 # Comando para cerrar ticket
 @bot.tree.command(name="close", description="❌ Cierra el ticket actual")
 async def close(interaction: discord.Interaction):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Este comando no está disponible en este servidor.", ephemeral=True)
+        return
+
     if interaction.channel.name.startswith(("venta", "coins", "fruta")):
         await interaction.channel.delete()
     else:
@@ -101,6 +120,10 @@ async def close(interaction: discord.Interaction):
 # Comando para marcar venta como completada
 @bot.tree.command(name="ventahecha", description="✅ Marca la venta como completada y envía un vouch")
 async def ventahecha(interaction: discord.Interaction):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Este comando no está disponible en este servidor.", ephemeral=True)
+        return
+
     channel = interaction.channel
     if not channel.name.startswith(("venta", "coins", "fruta")):
         await interaction.response.send_message("❌ Este comando solo puede usarse en tickets de venta.", ephemeral=True)
