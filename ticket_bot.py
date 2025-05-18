@@ -8,9 +8,9 @@ intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Configuración
-server_configs = [1317658154397466715]
-ticket_category_id = 1373499892886016081
-vouch_channel_id = 1317725063893614633
+server_configs = [1317658154397466715]  # IDs de servidores permitidos
+ticket_category_id = 1373499892886016081  # Categoría de tickets
+vouch_channel_id = 1317725063893614633  # Canal de vouches
 claimed_tickets = {}
 
 class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
@@ -60,7 +60,7 @@ class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
                 f"👤 Cliente: {interaction.user.mention}\n"
                 f"📦 Producto: {'Fruta' if self.tipo == 'fruit' else 'Coins'}\n"
                 f"🔢 Cantidad: {self.cantidad.value}\n"
-                f"💳 Método de Pago: {self.metodo_pago.value}"
+                f"💳 Pago: {self.metodo_pago.value}"
             ),
             color=discord.Color.orange(),
             timestamp=datetime.datetime.utcnow()
@@ -93,10 +93,10 @@ class PanelView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
         options = [
-            discord.SelectOption(label="🛒 Fruit", value="fruit", description="Compra fruta"),
-            discord.SelectOption(label="💰 Coins", value="coins", description="Compra coins"),
+            discord.SelectOption(label="🍉 Comprar Fruta", value="fruit", description="Compra fruta premium"),
+            discord.SelectOption(label="💰 Comprar Coins", value="coins", description="Compra monedas del juego"),
         ]
-        self.select = discord.ui.Select(placeholder="Selecciona el producto", options=options)
+        self.select = discord.ui.Select(placeholder="Selecciona un producto", options=options)
         self.select.callback = self.select_callback
         self.add_item(self.select)
 
@@ -122,8 +122,10 @@ async def panel(interaction: discord.Interaction):
     embed = discord.Embed(
         title="🎫 Sistema de Tickets de Venta",
         description=(
-            "**Métodos de Pago Disponibles:**\n💳 PayPal\n🎮 Robux\n🧾 Gitcard\n\n"
-            "Selecciona el producto que deseas comprar usando el menú abajo."
+            "Bienvenido al sistema de tickets.\n\n"
+            "🛍️ Selecciona el producto que deseas comprar.\n"
+            "💳 Métodos aceptados: PayPal, Robux y Gitcard.\n\n"
+            "Presiona el menú desplegable para continuar."
         ),
         color=discord.Color.green(),
         timestamp=datetime.datetime.utcnow()
@@ -142,22 +144,22 @@ async def ventahecha(interaction: discord.Interaction):
         return
 
     messages = [msg async for msg in interaction.channel.history(limit=20)]
+
     producto = "No especificado"
     cantidad = "No especificada"
     metodo = "No especificado"
 
     for msg in messages:
         if msg.author == bot.user and msg.embeds:
-            emb = msg.embeds[0]
-            if emb.title == "💼 Ticket de Venta":
-                lines = emb.description.splitlines()
-                for line in lines:
+            embed = msg.embeds[0]
+            if embed.title == "💼 Ticket de Venta":
+                for line in embed.description.splitlines():
                     if line.startswith("📦 Producto:"):
-                        producto = line.split("📦 Producto:")[1].strip()
+                        producto = line.replace("📦 Producto:", "").strip()
                     elif line.startswith("🔢 Cantidad:"):
-                        cantidad = line.split("🔢 Cantidad:")[1].strip()
-                    elif line.startswith("💳 Método de Pago:"):
-                        metodo = line.split("💳 Método de Pago:")[1].strip()
+                        cantidad = line.replace("🔢 Cantidad:", "").strip()
+                    elif line.startswith("💳 Pago:"):
+                        metodo = line.replace("💳 Pago:", "").strip()
                 break
 
     class ConfirmView(discord.ui.View):
@@ -165,39 +167,43 @@ async def ventahecha(interaction: discord.Interaction):
             super().__init__(timeout=120)
 
         @discord.ui.button(label="✅ Confirmar", style=discord.ButtonStyle.success)
-        async def confirm(self, interaction2: discord.Interaction, button: discord.ui.Button):
-            if interaction2.user.id != int(interaction.channel.topic):
-                await interaction2.response.send_message("❌ Solo el cliente puede confirmar.", ephemeral=True)
+        async def confirm(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
+            if str(interaction_btn.user.id) != interaction.channel.topic:
+                await interaction_btn.response.send_message("❌ Solo el cliente puede confirmar.", ephemeral=True)
                 return
 
             vouch_channel = interaction.guild.get_channel(vouch_channel_id)
             if not vouch_channel:
-                await interaction2.response.send_message("❌ Canal de vouches no encontrado.", ephemeral=True)
+                await interaction_btn.response.send_message("❌ Canal de vouches no encontrado.", ephemeral=True)
                 return
 
             embed = discord.Embed(
                 title="🧾 Vouch de Venta Completada",
                 description=(
                     f"👤 **Staff:** {interaction.user.mention}\n"
-                    f"🙋‍♂️ **Cliente:** {interaction2.user.mention}\n"
+                    f"🙋‍♂️ **Cliente:** {interaction_btn.user.mention}\n"
                     f"📦 **Producto:** {producto}\n"
                     f"🔢 **Cantidad:** {cantidad}\n"
                     f"💳 **Método de Pago:** {metodo}"
                 ),
-                color=discord.Color.green(),
+                color=discord.Color.gold(),
                 timestamp=datetime.datetime.utcnow()
             )
             embed.set_footer(text="Sistema de Ventas | Miluty")
             await vouch_channel.send(embed=embed)
-            await interaction2.response.send_message("✅ Venta confirmada. Cerrando ticket...", ephemeral=False)
+            await interaction_btn.response.send_message("✅ Venta confirmada. Cerrando ticket...", ephemeral=False)
             await interaction.channel.delete()
 
         @discord.ui.button(label="❌ Negar", style=discord.ButtonStyle.danger)
-        async def deny(self, interaction2: discord.Interaction, button: discord.ui.Button):
-            if interaction2.user.id != int(interaction.channel.topic):
-                await interaction2.response.send_message("❌ Solo el cliente puede negar.", ephemeral=True)
+        async def deny(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
+            if str(interaction_btn.user.id) != interaction.channel.topic:
+                await interaction_btn.response.send_message("❌ Solo el cliente puede negar.", ephemeral=True)
                 return
-            await interaction2.response.send_message("❌ Venta negada. El ticket sigue abierto.", ephemeral=True)
+            await interaction_btn.response.send_message("❌ Venta negada. El ticket sigue abierto.", ephemeral=True)
             self.stop()
 
-    await interaction.response.send_message("📩 Esperando confirmación del cliente...", view=ConfirmView())
+    await interaction.channel.send(
+        "📩 Esperando confirmación del cliente...\nPor favor confirma que recibiste tu producto.",
+        view=ConfirmView()
+    )
+
