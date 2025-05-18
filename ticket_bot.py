@@ -258,54 +258,47 @@ async def price(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed)
 
-class Vouch(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-
-    @app_commands.command(name="vouch", description="Enviar un vouch con rating y prueba opcional")
-    @app_commands.describe(
-        producto="Producto comprado",
-        comprado_a="¿A quién se lo compraste?",
-        rating="Calificación del 1 al 5",
-        comentario="Comentario adicional (opcional)"
-    )
-    @app_commands.choices(rating=[
-        app_commands.Choice(name="⭐️", value=1),
-        app_commands.Choice(name="⭐️⭐️", value=2),
-        app_commands.Choice(name="⭐️⭐️⭐️", value=3),
-        app_commands.Choice(name="⭐️⭐️⭐️⭐️", value=4),
-        app_commands.Choice(name="⭐️⭐️⭐️⭐️⭐️", value=5),
-    ])
-    async def vouch(self, interaction: discord.Interaction, producto: str, comprado_a: str, rating: app_commands.Choice[int], comentario: str = None):
-        attachments = interaction.message.attachments if interaction.message else []
-        imagen_url = None
-        if attachments:
-            attachment = attachments[0]
-            if attachment.content_type and attachment.content_type.startswith("image"):
-                imagen_url = attachment.url
-
-        embed = discord.Embed(
-            title="📝 Nuevo Vouch Recibido",
-            color=discord.Color.green(),
-            timestamp=discord.utils.utcnow()
-        )
-        embed.add_field(name="Producto", value=producto, inline=False)
-        embed.add_field(name="Comprado a", value=comprado_a, inline=False)
-        embed.add_field(name="Calificación", value=rating.name, inline=False)
-        if comentario:
-            embed.add_field(name="Comentario", value=comentario, inline=False)
-        embed.set_footer(text=f"Enviado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
-        if imagen_url:
-            embed.set_image(url=imagen_url)
-
-        canal_vouch = interaction.guild.get_channel(vouch_channel_id)
-        if not canal_vouch:
-            await interaction.response.send_message("❌ No encontré el canal de vouches.", ephemeral=True)
-            return
-
-        await interaction.response.defer()
-        await canal_vouch.send(embed=embed)
-        await interaction.followup.send("✅ Vouch enviado correctamente.", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(Vouch(bot))
+@bot.tree.command(name="vouch", description="📝 Deja una calificación y sube pruebas para un vendedor")
+@app_commands.describe(
+    usuario="Usuario al que haces vouch",
+    producto="Producto comprado",
+    estrellas="Calificación (1 a 5 estrellas)",
+    imagen="Imagen de prueba (opcional)"
+)
+async def vouch(
+    interaction: discord.Interaction,
+    usuario: discord.Member,
+    producto: str,
+    estrellas: int,
+    imagen: discord.Attachment = None
+):
+    # Verifica que el comando se use solo en los servidores permitidos
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Comando no disponible aquí.", ephemeral=True)
+        return
+
+    # Validación simple de estrellas entre 1 y 5
+    if estrellas < 1 or estrellas > 5:
+        await interaction.response.send_message("❌ La calificación debe estar entre 1 y 5 estrellas.", ephemeral=True)
+        return
+
+    # Construir estrellas visuales
+    estrellas_str = "⭐" * estrellas + "☆" * (5 - estrellas)
+
+    # Crear embed del vouch
+    embed = discord.Embed(
+        title="🧾 Nuevo Vouch Recibido",
+        description=(
+            f"👤 **Vouch por:** {interaction.user.mention}\n"
+            f"🙋‍♂️ **Para:** {usuario.mention}\n"
+            f"📦 **Producto:** {producto}\n"
+            f"⭐ **Calificación:** {estrellas_str}\n"
+        ),
+        color=discord.Color.gold(),
+        timestamp=datetime.datetime.utcnow()
+    )
+    embed.set
+
