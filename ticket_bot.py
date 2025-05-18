@@ -258,38 +258,46 @@ async def price(interaction: discord.Interaction):
     embed.set_footer(text="✨ ¡Gracias por elegirnos! / Thanks for choosing us! ✨")
 
     await interaction.response.send_message(embed=embed)
-@bot.tree.command(name="random", description="🎉 Sortea un ganador aleatorio entre los mencionados")
+@bot.tree.command(name="random", description="🎉 Sortea un miembro aleatorio del servidor (con ruleta)")
 @app_commands.describe(
-    participantes="Menciona a las personas que quieres incluir en la ruleta",
-    premio="¿Qué premio quieres sortear? Ej: '10,000 Coins'"
+    premio="¿Qué premio estás sorteando? Ej: '10,000 Coins'"
 )
-async def random(interaction: discord.Interaction, participantes: str, premio: str):
-    # Validar que el comando se ejecute solo en servidores permitidos
+async def random(interaction: discord.Interaction, premio: str):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible en este servidor.", ephemeral=True)
+        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
         return
 
-    # Extraer usuarios mencionados del string participantes
-    # Se asume que el input es algo tipo: "<@123> <@456>" (menciones)
-    mentions = [int(u.strip('<@!>')) for u in participantes.split() if u.startswith('<@')]
-    if not mentions:
-        await interaction.response.send_message("❌ Debes mencionar al menos a un participante válido.", ephemeral=True)
+    await interaction.response.defer()
+
+    # Obtener miembros válidos (no bots)
+    members = [m for m in interaction.guild.members if not m.bot and m.status != discord.Status.offline]
+    if not members:
+        await interaction.followup.send("❌ No hay miembros válidos conectados para el sorteo.")
         return
 
-    ganador_id = random.choice(mentions)
-    ganador = interaction.guild.get_member(ganador_id)
-    if not ganador:
-        await interaction.response.send_message("❌ No pude encontrar al ganador mencionado.", ephemeral=True)
-        return
-
+    # Mensaje inicial
     embed = discord.Embed(
-        title="🎉 ¡Ganador Sorteado!",
-        description=f"El ganador es {ganador.mention} 🎊\n\n**Premio:** {premio}",
-        color=discord.Color.gold(),
+        title="🎡 ¡Iniciando la ruleta!",
+        description="Girando nombres...",
+        color=discord.Color.orange()
+    )
+    msg = await interaction.followup.send(embed=embed)
+
+    # Simular ruleta (mostrar varios nombres antes del resultado)
+    for _ in range(10):
+        nombre = random.choice(members).display_name
+        embed.description = f"🎲 Girando... **{nombre}**"
+        await msg.edit(embed=embed)
+        await discord.utils.sleep_until(datetime.datetime.utcnow() + datetime.timedelta(milliseconds=400))
+
+    # Elegir ganador final
+    ganador = random.choice(members)
+    embed = discord.Embed(
+        title="🎉 ¡Tenemos un ganador!",
+        description=f"🏆 **{ganador.mention}** ha ganado **{premio}** 🎁",
+        color=discord.Color.green(),
         timestamp=datetime.datetime.utcnow()
     )
-    embed.set_footer(text=f"Sorteo ejecutado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
-    await interaction.response.send_message(embed=embed)
-
-
-
+    embed.set_thumbnail(url=ganador.display_avatar.url)
+    embed.set_footer(text=f"Sorteado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
+    await msg.edit(embed=embed)
