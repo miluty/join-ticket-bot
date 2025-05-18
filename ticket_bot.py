@@ -207,3 +207,38 @@ async def ventahecha(interaction: discord.Interaction):
         "📩 **Esperando confirmación del cliente...**\nPor favor confirma que recibiste tu producto.",
         view=ConfirmView()
     )
+@bot.tree.command(name="price", description="💰 Muestra la lista de precios de Coins y Robux")
+async def price(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="💎 Tabla de Precios - Coins y Robux",
+        description=(
+            "Aquí tienes los precios actuales para comprar **Coins** con Robux y su equivalencia en USD:\n\n"
+            "✨ 50,000 Coins = 160 Robux | $1.00 USD\n"
+            "✨ 100,000 Coins = 320 Robux | $2.00 USD\n"
+            "✨ 150,000 Coins = 480 Robux | $3.00 USD\n"
+            "✨ 200,000 Coins = 640 Robux | $4.00 USD\n"
+            "✨ 250,000 Coins = 800 Robux | $5.00 USD\n"
+            "✨ 300,000 Coins = 960 Robux | $6.00 USD\n"
+            "✨ 350,000 Coins = 1,120 Robux | $7.00 USD\n"
+            "✨ 400,000 Coins = 1,280 Robux | $8.00 USD\n"
+            "✨ 450,000 Coins = 1,440 Robux | $9.00 USD\n"
+            "✨ 500,000 Coins = 1,600 Robux | $10.00 USD\n"
+            "✨ 550,000 Coins = 1,760 Robux | $11.00 USD\n"
+            "✨ 600,000 Coins = 1,920 Robux | $12.00 USD\n"
+            "✨ 650,000 Coins = 2,080 Robux | $13.00 USD\n"
+            "✨ 700,000 Coins = 2,240 Robux | $14.00 USD\n"
+            "✨ 750,000 Coins = 2,400 Robux | $15.00 USD\n"
+            "✨ 800,000 Coins = 2,560 Robux | $16.00 USD\n"
+            "✨ 850,000 Coins = 2,720 Robux | $17.00 USD\n"
+            "✨ 900,000 Coins = 2,880 Robux | $18.00 USD\n"
+            "✨ 950,000 Coins = 3,040 Robux | $19.00 USD\n"
+            "✨ 1,000,000 Coins = 3,200 Robux | $20.00 USD"
+        ),
+        color=discord.Color.gold(),
+        timestamp=datetime.datetime.utcnow()
+    )
+    embed.set_footer(text="Sistema de Ventas | Miluty")
+    embed.set_thumbnail(url="https://i.imgur.com/yourThumbnail.png")  # Cambia por una imagen bonita de monedas o robux
+    embed.set_author(name="💰 Precios de Coins", icon_url="https://i.imgur.com/yourIcon.png")  # Cambia por un icono adecuado
+    
+    await interaction.response.send_message(embed=embed)
