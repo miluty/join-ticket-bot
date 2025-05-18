@@ -13,6 +13,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 server_configs = [1317658154397466715]  # IDs de servidores permitidos
 ticket_category_id = 1373499892886016081  # Categoría donde se crean tickets
 vouch_channel_id = 1317725063893614633  # Canal donde se envían los vouches
+GUILD_ID = 1317658154397466715
 
 claimed_tickets = {}  # Para saber qué ticket está reclamado
 ticket_data = {}      # Para guardar datos de cada ticket
