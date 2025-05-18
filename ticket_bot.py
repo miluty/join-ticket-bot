@@ -275,20 +275,16 @@ async def vouch(
     estrellas: int,
     imagen: discord.Attachment = None
 ):
-    # Verifica que el comando se use solo en los servidores permitidos
     if interaction.guild_id not in server_configs:
         await interaction.response.send_message("❌ Comando no disponible aquí.", ephemeral=True)
         return
 
-    # Validación simple de estrellas entre 1 y 5
     if estrellas < 1 or estrellas > 5:
         await interaction.response.send_message("❌ La calificación debe estar entre 1 y 5 estrellas.", ephemeral=True)
         return
 
-    # Construir estrellas visuales
     estrellas_str = "⭐" * estrellas + "☆" * (5 - estrellas)
 
-    # Crear embed del vouch
     embed = discord.Embed(
         title="🧾 Nuevo Vouch Recibido",
         description=(
@@ -300,5 +296,9 @@ async def vouch(
         color=discord.Color.gold(),
         timestamp=datetime.datetime.utcnow()
     )
-    embed.set
+    embed.set_footer(text="Sistema de Ventas | Miluty", icon_url=bot.user.display_avatar.url)
 
+    if imagen:
+        embed.set_image(url=imagen.url)
+
+    await interaction.response.send_message(embed=embed)
