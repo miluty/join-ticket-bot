@@ -2,6 +2,7 @@ import os
 import discord
 from discord.ext import commands
 import datetime
+import random
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -253,5 +254,33 @@ async def price(interaction: discord.Interaction):
         )
     
     embed.set_footer(text="✨ ¡Gracias por elegirnos! / Thanks for choosing us! ✨")
+
+    await interaction.response.send_message(embed=embed)
+@bot.tree.command(name="random", description="🎲 Sortea un premio entre los participantes del canal")
+@app_commands.describe(premio="¿Qué premio quieres sortear? Ej: '10,000 Coins'")
+@commands.has_permissions(manage_messages=True)  # Solo mods con permiso pueden usar
+async def random(interaction: discord.Interaction, premio: str):
+    # Obtener usuarios que hayan enviado mensaje en el canal (últimos 100 mensajes)
+    messages = await interaction.channel.history(limit=100).flatten()
+    participantes = list({msg.author for msg in messages if not msg.author.bot})
+
+    if not participantes:
+        await interaction.response.send_message("❌ No hay participantes para sortear.", ephemeral=True)
+        return
+
+    ganador = random.choice(participantes)
+
+    embed = discord.Embed(
+        title="🎉 ¡Ruleta de la Suerte! 🎉",
+        description=(
+            f"El ganador es... **{ganador.mention}**!\n\n"
+            f"🏆 Premio: **{premio}**\n\n"
+            "¡Felicidades! 🎊"
+        ),
+        color=discord.Color.gold(),
+        timestamp=datetime.datetime.utcnow()
+    )
+    embed.set_thumbnail(url=ganador.display_avatar.url)
+    embed.set_footer(text="Sorteo realizado por " + interaction.user.display_name)
 
     await interaction.response.send_message(embed=embed)
