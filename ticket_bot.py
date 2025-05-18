@@ -13,7 +13,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 server_configs = [1317658154397466715]  # IDs de servidores permitidos
 ticket_category_id = 1373499892886016081  # Categoría donde se crean tickets
 vouch_channel_id = 1317725063893614633  # Canal donde se envían los vouches
-GUILD_ID = 1317658154397466715
+
 
 claimed_tickets = {}  # Para saber qué ticket está reclamado
 ticket_data = {}      # Para guardar datos de cada ticket
@@ -259,40 +259,38 @@ async def price(interaction: discord.Interaction):
     embed.set_footer(text="✨ ¡Gracias por elegirnos! / Thanks for choosing us! ✨")
 
     await interaction.response.send_message(embed=embed)
-@bot.tree.command(name="random", description="🎉 Sortea un ganador aleatorio entre los mencionados", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="random", description="🎉 Sortea un ganador aleatorio entre los mencionados")
 @app_commands.describe(
-    premio="¿Qué premio quieres sortear? Ej: '10,000 Coins'",
-    miembros="Menciona a los participantes separados por espacio"
+    participantes="Menciona a las personas que quieres incluir en la ruleta",
+    premio="¿Qué premio quieres sortear? Ej: '10,000 Coins'"
 )
-async def random_command(interaction: discord.Interaction, premio: str, miembros: str):
-    mentions = [m.strip() for m in miembros.split()]
-    if len(mentions) == 0:
-        await interaction.response.send_message("❌ Debes mencionar al menos a un participante.", ephemeral=True)
+async def random(interaction: discord.Interaction, participantes: str, premio: str):
+    # Validar que el comando se ejecute solo en servidores permitidos
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Comando no disponible en este servidor.", ephemeral=True)
         return
 
-    guild = interaction.guild
-    participantes = []
-    for mention in mentions:
-        if mention.startswith("<@") and mention.endswith(">"):
-            member_id = int(mention.replace("<@", "").replace(">", "").replace("!", ""))
-            member = guild.get_member(member_id)
-            if member:
-                participantes.append(member)
-
-    if len(participantes) == 0:
-        await interaction.response.send_message("❌ No pude encontrar a los miembros mencionados en el servidor.", ephemeral=True)
+    # Extraer usuarios mencionados del string participantes
+    # Se asume que el input es algo tipo: "<@123> <@456>" (menciones)
+    mentions = [int(u.strip('<@!>')) for u in participantes.split() if u.startswith('<@')]
+    if not mentions:
+        await interaction.response.send_message("❌ Debes mencionar al menos a un participante válido.", ephemeral=True)
         return
 
-    ganador = random.choice(participantes)
+    ganador_id = random.choice(mentions)
+    ganador = interaction.guild.get_member(ganador_id)
+    if not ganador:
+        await interaction.response.send_message("❌ No pude encontrar al ganador mencionado.", ephemeral=True)
+        return
 
     embed = discord.Embed(
-        title="🎉 ¡SORTEO TERMINADO!",
-        description=f"🎊 El ganador es {ganador.mention} 🎊\n\n🏆 Premio: **{premio}**",
+        title="🎉 ¡Ganador Sorteado!",
+        description=f"El ganador es {ganador.mention} 🎊\n\n**Premio:** {premio}",
         color=discord.Color.gold(),
         timestamp=datetime.datetime.utcnow()
     )
-    embed.set_footer(text=f"Sorteado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
-
+    embed.set_footer(text=f"Sorteo ejecutado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
     await interaction.response.send_message(embed=embed)
+
 
 
