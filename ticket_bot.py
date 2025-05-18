@@ -169,46 +169,47 @@ async def ventahecha(interaction: discord.Interaction):
                         metodo = line.split("**Método de Pago:**")[1].strip()
                 break
 
-    class ConfirmView(discord.ui.View):
-        def __init__(self):
-            super().__init__(timeout=120)  # Espera 2 minutos para confirmar
+   class ConfirmView(discord.ui.View):
+    def __init__(self):
+      super().__init__(timeout=120)  # Espera 2 minutos para confirmar
 
-        @discord.ui.button(label="✅ Confirmar", style=discord.ButtonStyle.success)
-        async def confirm(self, button: discord.ui.Button, btn_interaction: discord.Interaction):
-            if btn_interaction.user.id != int(interaction.channel.topic):
-                await btn_interaction.response.send_message("❌ Solo el cliente puede confirmar.", ephemeral=True)
-                return
+    @discord.ui.button(label="✅ Confirmar", style=discord.ButtonStyle.success)
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+      if interaction.user.id != int(interaction.channel.topic):
+        await interaction.response.send_message("❌ Solo el cliente puede confirmar.", ephemeral=True)
+        return
 
-            vouch_channel = interaction.guild.get_channel(vouch_channel_id)
-            if not vouch_channel:
-                await btn_interaction.response.send_message("❌ Canal de vouches no encontrado.", ephemeral=True)
-                return
+      vouch_channel = interaction.guild.get_channel(vouch_channel_id)
+      if not vouch_channel:
+        await interaction.response.send_message("❌ Canal de vouches no encontrado.", ephemeral=True)
+        return
 
-            embed = discord.Embed(
-                title="🧾 Vouch de Venta Completada",
-                description=(
-                    f"✅ Transacción completada:\n"
-                    f"**Staff:** {interaction.user.mention}\n"
-                    f"**Cliente:** {btn_interaction.user.mention}\n"
-                    f"**Producto:** {producto}\n"
-                    f"**Cantidad:** {cantidad}\n"
-                    f"**Método de Pago:** {metodo}"
-                ),
-                color=discord.Color.green(),
-                timestamp=datetime.datetime.utcnow()
-            )
-            embed.set_footer(text="Sistema de Ventas | Miluty")
-            await vouch_channel.send(embed=embed)
-            await btn_interaction.response.send_message("✅ Venta confirmada. Cerrando ticket...", ephemeral=False)
-            await interaction.channel.delete()
+      embed = discord.Embed(
+        title="🧾 Vouch de Venta Completada",
+        description=(
+          f"✅ Transacción completada:\n"
+          f"**Staff:** {interaction.user.mention}\n"
+          f"**Cliente:** <@{interaction.user.id}>\n"
+          f"**Producto:** {producto}\n"
+          f"**Cantidad:** {cantidad}\n"
+          f"**Método de Pago:** {metodo}"
+        ),
+        color=discord.Color.green(),
+        timestamp=datetime.datetime.utcnow()
+      )
+      embed.set_footer(text="Sistema de Ventas | Miluty")
+      await vouch_channel.send(embed=embed)
+      await interaction.response.send_message("✅ Venta confirmada. Cerrando ticket...", ephemeral=False)
+      await interaction.channel.delete()
 
-        @discord.ui.button(label="❌ Negar", style=discord.ButtonStyle.danger)
-        async def deny(self, button: discord.ui.Button, btn_interaction: discord.Interaction):
-            if btn_interaction.user.id != int(interaction.channel.topic):
-                await btn_interaction.response.send_message("❌ Solo el cliente puede negar.", ephemeral=True)
-                return
-            await btn_interaction.response.send_message("❌ Venta negada. El ticket sigue abierto.", ephemeral=True)
-            self.stop()
+    @discord.ui.button(label="❌ Negar", style=discord.ButtonStyle.danger)
+    async def deny(self, interaction: discord.Interaction, button: discord.ui.Button):
+      if interaction.user.id != int(interaction.channel.topic):
+        await interaction.response.send_message("❌ Solo el cliente puede negar.", ephemeral=True)
+        return
+      await interaction.response.send_message("❌ Venta negada. El ticket sigue abierto.", ephemeral=True)
+      self.stop()
+
 
     await interaction.response.send_message(
         "📩 Esperando confirmación del cliente... Usa los botones para confirmar o negar la venta.",
