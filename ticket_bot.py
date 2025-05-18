@@ -123,12 +123,13 @@ class PanelView(discord.ui.View):
 
 @bot.event
 async def on_ready():
-    print(f"🤖 Bot conectado como {bot.user}")
+    await bot.wait_until_ready()  # <- importante
     try:
         synced = await bot.tree.sync()
-        print(f"✅ Comandos sincronizados: {len(synced)}")
+        print(f"✅ Comandos sincronizados correctamente: {len(synced)}")
     except Exception as e:
         print(f"❌ Error al sincronizar comandos: {e}")
+
 
 @bot.tree.command(name="panel", description="📩 Muestra el panel de tickets")
 async def panel(interaction: discord.Interaction):
