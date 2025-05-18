@@ -211,32 +211,47 @@ async def ventahecha(interaction: discord.Interaction):
         view=ConfirmView()
     )
 
-@bot.tree.command(name="price", description="💰 Muestra la lista de precios de Coins y Robux")
+@bot.tree.command(name="price", description="💰 Muestra la lista de precios de Coins y Robux / Shows Coins and Robux price list")
 async def price(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible aquí.", ephemeral=True)
+        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
         return
 
     embed = discord.Embed(
-        title="💎 Tabla de Precios - Coins y Robux",
+        title="🎉 ¡Precios Increíbles! / Amazing Prices! 🎉",
         description=(
-            "Aquí tienes los precios actuales para comprar **Coins** con Robux y su equivalencia en USD:\n\n"
-            "✨ 50,000 Coins = 160 Robux | $1.00 USD\n"
-            "✨ 100,000 Coins = 320 Robux | $2.00 USD\n"
-            "✨ 150,000 Coins = 480 Robux | $3.00 USD\n"
-            "✨ 200,000 Coins = 640 Robux | $4.00 USD\n"
-            "✨ 250,000 Coins = 800 Robux | $5.00 USD\n"
-            "✨ 300,000 Coins = 960 Robux | $6.00 USD\n"
-            "✨ 350,000 Coins = 1,120 Robux | $7.00 USD\n"
-            "✨ 400,000 Coins = 1,280 Robux | $8.00 USD\n"
-            "✨ 450,000 Coins = 1,440 Robux | $9.00 USD\n"
-            "✨ 500,000 Coins = 1,600 Robux | $10.00 USD\n\n"
-            "💡 *Usa /ventahecha para confirmar tu compra y cerrar el ticket.*"
+            "¿Listo para subir de nivel? Compra **Coins** con **Robux** de forma sencilla y segura.\n"
+            "Ready to level up? Buy **Coins** with **Robux** easily and safely!\n\n"
+            "💡 *Cada 50,000 Coins → 140 Robux y $1 USD* / *Each 50,000 Coins → 140 Robux and $1 USD*\n"
+            "🚀 ¡Haz tu pedido y empieza la aventura! / Make your order and start the adventure!"
         ),
-        color=discord.Color.purple(),
+        color=0xE91E63,  # rosa vibrante y alegre
         timestamp=datetime.datetime.utcnow()
     )
-    embed.set_footer(text="Precios actualizados | Miluty", icon_url=bot.user.display_avatar.url)
+
+    embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")  # una imagen divertida de monedas o algo así
+    embed.set_author(name="💎 Sistema de Precios / Price System", icon_url="https://i.imgur.com/3i1S0cL.png")
+    
+    prices = [
+        (50_000, 140, 1),
+        (100_000, 280, 2),
+        (150_000, 420, 3),
+        (200_000, 560, 4),
+        (250_000, 700, 5),
+        (300_000, 840, 6),
+        (350_000, 980, 7),
+        (400_000, 1_120, 8),
+        (450_000, 1_260, 9),
+        (500_000, 1_400, 10),
+    ]
+
+    for coins, robux, usd in prices:
+        embed.add_field(
+            name=f"🍀 {coins:,} Coins",
+            value=f"💜 {robux} Robux\n💵 ${usd}.00 USD",
+            inline=True,
+        )
+    
+    embed.set_footer(text="✨ ¡Gracias por elegirnos! / Thanks for choosing us! ✨")
+
     await interaction.response.send_message(embed=embed)
-
-
