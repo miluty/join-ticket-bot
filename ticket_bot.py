@@ -1,10 +1,11 @@
 import os
 import discord
-from discord.ext import commands
 import datetime
 import random
 import asyncio
 from discord import app_commands
+from discord.ext import commands
+import discord
 
 
 intents = discord.Intents.all()
@@ -261,57 +262,58 @@ async def price(interaction: discord.Interaction):
     embed.set_footer(text="✨ ¡Gracias por elegirnos! / Thanks for choosing us! ✨")
 
     await interaction.response.send_message(embed=embed)
-class RuletaJoinView(discord.ui.View):
-    def __init__(self, timeout):
-        super().__init__(timeout=timeout)
-        self.participantes = set()
 
-    @discord.ui.button(label="🎲 Unirse a la ruleta", style=discord.ButtonStyle.primary)
-    async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user.id in self.participantes:
-            await interaction.response.send_message("❌ Ya estás dentro de la ruleta.", ephemeral=True)
+class Vouch(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @app_commands.command(name="vouch", description="Enviar un vouch con rating y prueba opcional")
+    @app_commands.describe(
+        producto="Producto comprado",
+        comprado_a="¿A quién se lo compraste?",
+        rating="Calificación del 1 al 5",
+        comentario="Comentario adicional (opcional)"
+    )
+    @app_commands.choices(rating=[
+        app_commands.Choice(name="⭐️", value=1),
+        app_commands.Choice(name="⭐️⭐️", value=2),
+        app_commands.Choice(name="⭐️⭐️⭐️", value=3),
+        app_commands.Choice(name="⭐️⭐️⭐️⭐️", value=4),
+        app_commands.Choice(name="⭐️⭐️⭐️⭐️⭐️", value=5),
+    ])
+    async def vouch(self, interaction: discord.Interaction, producto: str, comprado_a: str, rating: app_commands.Choice[int], comentario: str = None):
+        # Primero verificamos si el usuario adjuntó alguna imagen/prueba en el mensaje
+        attachments = interaction.message.attachments if interaction.message else []
+        imagen_url = None
+        if attachments:
+            # Solo tomamos la primera imagen (puedes modificar si quieres más)
+            attachment = attachments[0]
+            if attachment.content_type and attachment.content_type.startswith("image"):
+                imagen_url = attachment.url
+
+        embed = discord.Embed(
+            title="📝 Nuevo Vouch Recibido",
+            color=discord.Color.green(),
+            timestamp=discord.utils.utcnow()
+        )
+        embed.add_field(name="Producto", value=producto, inline=False)
+        embed.add_field(name="Comprado a", value=comprado_a, inline=False)
+        embed.add_field(name="Calificación", value=rating.name, inline=False)
+        if comentario:
+            embed.add_field(name="Comentario", value=comentario, inline=False)
+        embed.set_footer(text=f"Enviado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
+        if imagen_url:
+            embed.set_image(url=imagen_url)
+
+        canal_vouch_id = 1317725063893614633  # Cambia al canal donde quieras que se envíen los vouches
+        canal = interaction.guild.get_channel(canal_vouch_id)
+        if not canal:
+            await interaction.response.send_message("❌ No encontré el canal de vouches.", ephemeral=True)
             return
-        self.participantes.add(interaction.user.id)
-        await interaction.response.send_message("✅ Te has unido a la ruleta.", ephemeral=True)
 
-@bot.tree.command(name="ruleta", description="Inicia una ruleta para seleccionar un ganador.", guild=discord.Object(id=server_configs[0]))
-@app_commands.describe(tiempo="Tiempo en segundos para unirse a la ruleta")
-@app_commands.checks.has_permissions(administrator=True)
-async def ruleta(interaction: discord.Interaction, tiempo: int):
-    if tiempo <= 0 or tiempo > 300:
-        await interaction.response.send_message("❌ El tiempo debe estar entre 1 y 300 segundos.", ephemeral=True)
-        return
+        await interaction.response.defer()
+        await canal.send(embed=embed)
+        await interaction.followup.send("✅ Vouch enviado correctamente.", ephemeral=True)
 
-    view = RuletaJoinView(timeout=tiempo)
-
-    embed = discord.Embed(
-        title="🎲 Ruleta - ¡Únete ahora!",
-        description=f"Presiona el botón para unirte a la ruleta.\nTiempo para unirse: {tiempo} segundos.",
-        color=discord.Color.purple(),
-        timestamp=discord.utils.utcnow()
-    )
-    embed.set_footer(text=f"Iniciado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
-
-    await interaction.response.send_message(embed=embed, view=view)
-
-    # Espera a que termine el tiempo para unirse
-    await asyncio.sleep(tiempo)
-
-    if not view.participantes:
-        await interaction.followup.send("⏰ Tiempo terminado y nadie se unió a la ruleta.", ephemeral=False)
-        return
-
-    ganador_id = random.choice(list(view.participantes))
-    ganador = interaction.guild.get_member(ganador_id)
-    if not ganador:
-        ganador_name = f"Usuario ID {ganador_id}"
-    else:
-        ganador_name = ganador.mention
-
-    embed_ganador = discord.Embed(
-        title="🏆 ¡Tenemos un ganador!",
-        description=f"El ganador de la ruleta es {ganador_name} 🎉",
-        color=discord.Color.gold(),
-        timestamp=discord.utils.utcnow()
-    )
-    await interaction.followup.send(embed=embed_ganador)
+async def setup(bot):
+    await bot.add_cog(Vouch(bot))
