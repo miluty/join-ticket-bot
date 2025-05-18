@@ -12,7 +12,7 @@ server_configs = [1317658154397466715]  # IDs de servidores permitidos
 ticket_category_id = 1373499892886016081  # Categoría de tickets
 vouch_channel_id = 1317725063893614633  # Canal de vouches
 claimed_tickets = {}
-ticket_data = {}  # Aquí guardamos info: {channel_id: {"producto":..., "cantidad":..., "metodo":...}}
+ticket_data = {}  # Diccionario para guardar información de tickets
 
 class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
     def __init__(self, tipo):
@@ -20,7 +20,7 @@ class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
         self.tipo = tipo
 
         self.cantidad = discord.ui.TextInput(
-            label=f"¿Cuánta {'fruta' if tipo == 'fruit' else 'coins'} quieres comprar?",
+            label=f"¿Cuánta {'🍉 fruta' if tipo == 'fruit' else '💰 coins'} quieres comprar?",
             placeholder="Ej: 1, 10, 100...",
             required=True,
             style=discord.TextStyle.short,
@@ -29,7 +29,7 @@ class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
         self.add_item(self.cantidad)
 
         self.metodo_pago = discord.ui.TextInput(
-            label="Método de Pago (PayPal, Robux, Gitcard...)",
+            label="Método de Pago (PayPal, Robux, Gitcard...) 💳",
             placeholder="Ej: PayPal",
             required=True,
             style=discord.TextStyle.short,
@@ -53,29 +53,27 @@ class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
             topic=str(interaction.user.id)
         )
 
-        # Guardamos los datos del ticket para este canal
+        # Guardar datos del ticket
         ticket_data[channel.id] = {
-            "producto": "Fruta" if self.tipo == "fruit" else "Coins",
+            "producto": "🍉 Fruta" if self.tipo == "fruit" else "💰 Coins",
             "cantidad": self.cantidad.value,
-            "metodo": self.metodo_pago.value,
-            "cliente_id": interaction.user.id
+            "metodo": self.metodo_pago.value
         }
 
         claim_view = ClaimView(channel)
 
         embed_ticket = discord.Embed(
-            title="📦 **Nuevo Ticket de Venta**",
+            title="💼 Ticket de Venta",
             description=(
                 f"👤 **Cliente:** {interaction.user.mention}\n"
-                f"📦 **Producto:** {ticket_data[channel.id]['producto']}\n"
-                f"🔢 **Cantidad:** `{ticket_data[channel.id]['cantidad']}`\n"
-                f"💳 **Método de Pago:** `{ticket_data[channel.id]['metodo']}`\n\n"
-                "📣 Un miembro del staff atenderá tu solicitud pronto."
+                f"📦 **Producto:** {'🍉 Fruta' if self.tipo == 'fruit' else '💰 Coins'}\n"
+                f"🔢 **Cantidad:** {self.cantidad.value}\n"
+                f"💳 **Pago:** {self.metodo_pago.value}"
             ),
-            color=discord.Color.from_rgb(255, 183, 3),
+            color=discord.Color.orange(),
             timestamp=datetime.datetime.utcnow()
         )
-        embed_ticket.set_footer(text="📁 Ticket generado automáticamente por Miluty")
+        embed_ticket.set_footer(text="Sistema de Tickets | Miluty", icon_url=bot.user.display_avatar.url)
 
         await channel.send(content=interaction.user.mention, embed=embed_ticket, view=claim_view)
         await interaction.response.send_message(f"✅ Ticket creado: {channel.mention}", ephemeral=True)
@@ -85,19 +83,21 @@ class ClaimView(discord.ui.View):
         super().__init__(timeout=None)
         self.channel = channel
 
-    @discord.ui.button(label="🎟️ Reclamar Ticket", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="🎟️ Reclamar Ticket", style=discord.ButtonStyle.primary, emoji="🛠️")
     async def claim_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.channel.id in claimed_tickets:
             await interaction.response.send_message("❌ Este ticket ya fue reclamado.", ephemeral=True)
             return
         claimed_tickets[self.channel.id] = interaction.user.id
-        await interaction.response.edit_message(embed=discord.Embed(
-            title="🎟️ **Ticket Reclamado**",
-            description=f"✅ Este ticket fue reclamado por {interaction.user.mention}.\n\nPor favor, continúa con la venta.",
+        embed_reclamado = discord.Embed(
+            title="🎟️ Ticket Reclamado",
+            description=f"✅ Reclamado por: {interaction.user.mention}",
             color=discord.Color.blue(),
             timestamp=datetime.datetime.utcnow()
-        ).set_footer(text="👤 Staff asignado al ticket"), view=None)
-        await self.channel.send(f"{interaction.user.mention} ha reclamado este ticket.")
+        )
+        embed_reclamado.set_footer(text="Sistema de Tickets | Miluty", icon_url=bot.user.display_avatar.url)
+        await interaction.response.edit_message(embed=embed_reclamado, view=None)
+        await self.channel.send(f"🛠️ {interaction.user.mention} ha reclamado este ticket.")
 
 class PanelView(discord.ui.View):
     def __init__(self):
@@ -106,7 +106,7 @@ class PanelView(discord.ui.View):
             discord.SelectOption(label="🍉 Comprar Fruta", value="fruit", description="Compra fruta premium"),
             discord.SelectOption(label="💰 Comprar Coins", value="coins", description="Compra monedas del juego"),
         ]
-        self.select = discord.ui.Select(placeholder="Selecciona un producto", options=options)
+        self.select = discord.ui.Select(placeholder="Selecciona un producto 🍽️", options=options)
         self.select.callback = self.select_callback
         self.add_item(self.select)
 
@@ -116,12 +116,12 @@ class PanelView(discord.ui.View):
 
 @bot.event
 async def on_ready():
-    print(f"Bot conectado como {bot.user}")
+    print(f"🤖 Bot conectado como {bot.user}")
     try:
         synced = await bot.tree.sync()
-        print(f"Comandos sincronizados: {len(synced)}")
+        print(f"✅ Comandos sincronizados: {len(synced)}")
     except Exception as e:
-        print(f"Error al sincronizar comandos: {e}")
+        print(f"❌ Error al sincronizar comandos: {e}")
 
 @bot.tree.command(name="panel", description="📩 Muestra el panel de tickets")
 async def panel(interaction: discord.Interaction):
@@ -130,19 +130,17 @@ async def panel(interaction: discord.Interaction):
         return
 
     embed = discord.Embed(
-        title="🎫 **Panel de Compra - Sistema de Tickets**",
+        title="🎫 Sistema de Tickets de Venta",
         description=(
-            "**¡Bienvenido al sistema de ventas de Miluty!**\n\n"
-            "🛍️ **Selecciona qué deseas comprar:**\n"
-            " 🍉 Fruta Premium\n"
-            " 💰 Monedas del juego (Coins)\n\n"
-            "💳 **Métodos aceptados:** PayPal, Robux, Gitcard\n"
-            "📩 Presiona el menú desplegable abajo para continuar."
+            "Bienvenido al sistema de tickets.\n\n"
+            "🛍️ Selecciona el producto que deseas comprar.\n"
+            "💳 Métodos aceptados: **PayPal, Robux y Gitcard**.\n\n"
+            "Presiona el menú desplegable para continuar."
         ),
-        color=discord.Color.from_rgb(66, 135, 245),
+        color=discord.Color.green(),
         timestamp=datetime.datetime.utcnow()
     )
-    embed.set_footer(text="🔹 Miluty Tickets - Selecciona una opción abajo")
+    embed.set_footer(text="Sistema de Tickets | Miluty", icon_url=bot.user.display_avatar.url)
     await interaction.response.send_message(embed=embed, view=PanelView())
 
 @bot.tree.command(name="ventahecha", description="✅ Confirma la venta y cierra el ticket")
@@ -151,23 +149,26 @@ async def ventahecha(interaction: discord.Interaction):
         await interaction.response.send_message("❌ Comando no disponible aquí.", ephemeral=True)
         return
 
-    channel_id = interaction.channel.id
-    if channel_id not in ticket_data:
-        await interaction.response.send_message("❌ No hay datos de venta para este ticket.", ephemeral=True)
+    if not interaction.channel.name.startswith(("fruit", "coins")):
+        await interaction.response.send_message("❌ Solo se puede usar en tickets de venta.", ephemeral=True)
         return
 
-    data = ticket_data[channel_id]
-    if interaction.user.id != data["cliente_id"]:
-        await interaction.response.send_message("❌ Solo el cliente que abrió el ticket puede confirmar la venta.", ephemeral=True)
+    datos = ticket_data.get(interaction.channel.id)
+    if not datos:
+        await interaction.response.send_message("❌ No se encontraron datos del ticket.", ephemeral=True)
         return
+
+    producto = datos.get("producto", "No especificado")
+    cantidad = datos.get("cantidad", "No especificada")
+    metodo = datos.get("metodo", "No especificado")
 
     class ConfirmView(discord.ui.View):
         def __init__(self):
             super().__init__(timeout=120)
 
-        @discord.ui.button(label="✅ Confirmar", style=discord.ButtonStyle.success)
+        @discord.ui.button(label="✅ Confirmar", style=discord.ButtonStyle.success, emoji="✔️")
         async def confirm(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
-            if interaction_btn.user.id != data["cliente_id"]:
+            if str(interaction_btn.user.id) != interaction.channel.topic:
                 await interaction_btn.response.send_message("❌ Solo el cliente puede confirmar.", ephemeral=True)
                 return
 
@@ -177,45 +178,32 @@ async def ventahecha(interaction: discord.Interaction):
                 return
 
             embed = discord.Embed(
-                title="🧾 **¡Venta Completada con Éxito!**",
+                title="🧾 Vouch de Venta Completada",
                 description=(
                     f"👤 **Staff:** {interaction.user.mention}\n"
                     f"🙋‍♂️ **Cliente:** {interaction_btn.user.mention}\n"
-                    f"📦 **Producto:** `{data['producto']}`\n"
-                    f"🔢 **Cantidad:** `{data['cantidad']}`\n"
-                    f"💳 **Método de Pago:** `{data['metodo']}`\n\n"
-                    "✨ ¡Gracias por confiar en nosotros!"
+                    f"📦 **Producto:** {producto}\n"
+                    f"🔢 **Cantidad:** {cantidad}\n"
+                    f"💳 **Método de Pago:** {metodo}"
                 ),
-                color=discord.Color.from_rgb(0, 200, 83),
+                color=discord.Color.gold(),
                 timestamp=datetime.datetime.utcnow()
             )
-            embed.set_footer(text="🔒 Sistema de Ventas • Miluty")
+            embed.set_footer(text="Sistema de Ventas | Miluty", icon_url=bot.user.display_avatar.url)
             await vouch_channel.send(embed=embed)
             await interaction_btn.response.send_message("✅ Venta confirmada. Cerrando ticket...", ephemeral=False)
-            # Borra datos para evitar fugas de memoria
-            ticket_data.pop(channel_id, None)
-            claimed_tickets.pop(channel_id, None)
+            ticket_data.pop(interaction.channel.id, None)
             await interaction.channel.delete()
 
-        @discord.ui.button(label="❌ Negar", style=discord.ButtonStyle.danger)
+        @discord.ui.button(label="❌ Negar", style=discord.ButtonStyle.danger, emoji="✖️")
         async def deny(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
-            if interaction_btn.user.id != data["cliente_id"]:
+            if str(interaction_btn.user.id) != interaction.channel.topic:
                 await interaction_btn.response.send_message("❌ Solo el cliente puede negar.", ephemeral=True)
                 return
             await interaction_btn.response.send_message("❌ Venta negada. El ticket sigue abierto.", ephemeral=True)
             self.stop()
 
     await interaction.channel.send(
-        embed=discord.Embed(
-            title="📩 **Confirmación de Producto Entregado**",
-            description=(
-                "🔐 Solo el **cliente** puede confirmar la entrega.\n\n"
-                "✅ Si ya recibiste tu producto, confirma usando el botón.\n"
-                "❌ Si no lo has recibido, puedes rechazar."
-            ),
-            color=discord.Color.green(),
-            timestamp=datetime.datetime.utcnow()
-        ).set_footer(text="🧾 Esperando confirmación del cliente..."),
+        "📩 **Esperando confirmación del cliente...**\nPor favor confirma que recibiste tu producto.",
         view=ConfirmView()
     )
-
