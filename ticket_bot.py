@@ -302,3 +302,37 @@ async def vouch(
         embed.set_image(url=imagen.url)
 
     await interaction.response.send_message(embed=embed)
+@bot.tree.command(name="ruleta", description="🎲 Sortea un premio entre los miembros del servidor")
+@app_commands.describe(
+    premio="Describe el premio que se sortea"
+)
+@app_commands.checks.has_permissions(administrator=True)
+async def ruleta(interaction: discord.Interaction, premio: str):
+    guild = interaction.guild
+    if not guild:
+        await interaction.response.send_message("❌ Este comando solo se puede usar en un servidor.", ephemeral=True)
+        return
+
+    # Filtrar solo miembros humanos que no sean bots
+    miembros_validos = [m for m in guild.members if not m.bot and m.status != discord.Status.offline]
+
+    if not miembros_validos:
+        await interaction.response.send_message("❌ No hay miembros válidos para la ruleta.", ephemeral=True)
+        return
+
+    ganador = random.choice(miembros_validos)
+
+    embed = discord.Embed(
+        title="🎉 ¡Ganador de la Ruleta! 🎉",
+        description=(
+            f"🏆 **Premio:** {premio}\n"
+            f"🎊 **Ganador:** {ganador.mention}\n\n"
+            f"¡Felicidades! 🎈"
+        ),
+        color=discord.Color.purple(),
+        timestamp=datetime.datetime.utcnow()
+    )
+    embed.set_thumbnail(url=ganador.display_avatar.url)
+    embed.set_footer(text=f"Ruleta por {interaction.user}", icon_url=interaction.user.display_avatar.url)
+
+    await interaction.response.send_message(embed=embed)
