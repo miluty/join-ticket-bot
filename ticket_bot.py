@@ -399,21 +399,25 @@ async def pases(interaction: discord.Interaction):
     embed.set_footer(text="Sistema de Ventas | Robux a Coins", icon_url=bot.user.display_avatar.url)
 
     await interaction.response.send_message(embed=embed)
-@bot.tree.command(name="robux", description="💰 Consulta stock y compra Robux en pesos colombianos o PayPal")
+
+
+
+@bot.tree.command(
+    name="robux", 
+    description="💰 Consulta y compra Robux en pesos colombianos o PayPal", 
+    guild=discord.Object(id=server_configs[0])  # Usamos el primer ID de la lista
+)
 async def robux(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Este comando no está configurado para este servidor.", ephemeral=True)
+        await interaction.response.send_message("❌ Comando no disponible en este servidor.", ephemeral=True)
         return
-
-    stock = server_configs[interaction.guild_id].get("robux_stock", 0)
 
     embed = discord.Embed(
         title="🛒 Compra de Robux",
         description=(
-            f"💸 **Precio:** 100 Robux = 3,500 COP / 1 USD\n"
-            f"🔢 **Mínimo de compra:** 200 Robux\n"
-            f"📦 **Stock disponible:** {stock} Robux\n\n"
-            f"📝 Haz clic en el botón para iniciar tu compra. Se abrirá un formulario para continuar."
+            "💸 **Precio:** 100 Robux = 3,500 COP / 1 USD\n"
+            "🔢 **Mínimo de compra:** 200 Robux\n\n"
+            "📝 Haz clic en el botón para iniciar tu compra. Se abrirá un formulario para continuar."
         ),
         color=discord.Color.purple()
     )
@@ -460,9 +464,9 @@ async def robux(interaction: discord.Interaction):
                         title="🎫 Nueva Solicitud de Robux",
                         description=(
                             f"👤 **Usuario:** {interaction.user.mention}\n"
-                            f"🔢 **Cantidad:** {self.cantidad.value}\n"
-                            f"💳 **Método de Pago:** {self.metodo.value}\n"
-                            f"🕹️ **Usuario Roblox:** `{self.usuario_roblox.value}`\n\n"
+                            f"🔢 **Cantidad:** {self.cantidad}\n"
+                            f"💳 **Método de Pago:** {self.metodo}\n"
+                            f"🕹️ **Usuario Roblox:** `{self.usuario_roblox}`\n\n"
                             f"📌 Un staff atenderá tu solicitud pronto. ¡Gracias por tu compra!"
                         ),
                         color=discord.Color.green(),
