@@ -472,7 +472,7 @@ async def robux_prices(interaction: discord.Interaction):
             "> 💵 100 Robux = 1 USD\n"
             "> 🎯 Minimum Purchase: 200 Robux\n\n"
             "**🇪🇸 Español:**\n"
-            "> 💵 100 Robux = 1 USD o 3,500 COP\n"
+            "> 💵 100 Robux = 1 USD, 3,500 COP o 3.80 PEN\n"
             "> 🎯 Compra mínima: 200 Robux"
         ),
         color=discord.Color.blue(),
@@ -480,7 +480,6 @@ async def robux_prices(interaction: discord.Interaction):
     )
     embed.set_footer(text="Robux Info | Miluty", icon_url=bot.user.display_avatar.url)
     await interaction.response.send_message(embed=embed)
-
 
 @bot.tree.command(name="g", description="🔗 Muestra el grupo de Roblox para la compra de Robux")
 async def grupo_roblox(interaction: discord.Interaction):
