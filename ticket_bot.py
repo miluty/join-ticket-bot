@@ -432,7 +432,7 @@ async def robux(interaction: discord.Interaction):
         description="¡Compra Robux al mejor precio! / Buy Robux at the best price!",
         color=discord.Color.green()
     )
-    embed.set_thumbnail(url="https://i.imgur.com/Q9rO6L5.png")  # Icono de Robux por ejemplo
+    embed.set_thumbnail(url="https://i.imgur.com/Q9rO6L5.png")
     embed.add_field(name="📦 Stock actual / Current Stock", value=f"**{stock} Robux** disponibles", inline=False)
     embed.add_field(name="💰 Precio en pesos colombianos (COP) / Price in Colombian Pesos (COP)",
                     value=f"**{precio_cop_por_100} COP** por cada 100 Robux", inline=False)
@@ -442,7 +442,7 @@ async def robux(interaction: discord.Interaction):
 
     class TicketView(discord.ui.View):
         def __init__(self):
-            super().__init__(timeout=None)  # Sin timeout para que los botones no expiren
+            super().__init__(timeout=None)
 
         @discord.ui.button(label="🎫 Abrir ticket / Open ticket", style=discord.ButtonStyle.primary, emoji="🎫")
         async def open_ticket(self, interaction_button: discord.Interaction, button: discord.ui.Button):
@@ -457,6 +457,7 @@ async def robux(interaction: discord.Interaction):
             }
             channel = await guild.create_text_channel(f"ticket-{interaction_button.user.name}", overwrites=overwrites)
 
+            # Embed y botón que van dentro del ticket
             ticket_embed = discord.Embed(
                 title=f"🎟️ Ticket de compra de Robux / Robux Purchase Ticket",
                 description=f"{interaction_button.user.mention}, gracias por abrir tu ticket. Un administrador te atenderá pronto.\n\n"
@@ -464,30 +465,31 @@ async def robux(interaction: discord.Interaction):
                 color=discord.Color.blue()
             )
             ticket_embed.set_footer(text="Por favor espera la atención del staff / Please wait for staff assistance")
-            await channel.send(embed=ticket_embed)
+
+            class ClaimTicketView(discord.ui.View):
+                def __init__(self):
+                    super().__init__(timeout=None)
+
+                @discord.ui.button(label="🛠️ Reclamar ticket / Claim ticket", style=discord.ButtonStyle.success, emoji="🛠️")
+                async def claim_ticket(self, interaction_claim: discord.Interaction, button_claim: discord.ui.Button):
+                    # Solo admins o roles con permiso para reclamar
+                    if not interaction_claim.user.guild_permissions.manage_channels:
+                        await interaction_claim.response.send_message("No tienes permisos para reclamar tickets. / You don't have permission to claim tickets.", ephemeral=True)
+                        return
+
+                    # Asignar permisos para que el admin pueda ver y escribir en el canal
+                    overwrites = channel.overwrites
+                    overwrites[interaction_claim.user] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                    await channel.edit(overwrites=overwrites)
+
+                    await interaction_claim.response.send_message(
+                        f"Ticket reclamado por {interaction_claim.user.mention} ✅ / Ticket claimed by {interaction_claim.user.mention}",
+                        ephemeral=True)
+
+            await channel.send(embed=ticket_embed, view=ClaimTicketView())
             await interaction_button.response.send_message("Ticket creado correctamente! / Ticket created successfully!", ephemeral=True)
 
-        @discord.ui.button(label="🛠️ Reclamar ticket / Claim ticket", style=discord.ButtonStyle.success, emoji="🛠️")
-        async def claim_ticket(self, interaction_button: discord.Interaction, button: discord.ui.Button):
-            # Solo admins o roles con permiso para reclamar
-            if not interaction_button.user.guild_permissions.manage_channels:
-                await interaction_button.response.send_message("No tienes permisos para reclamar tickets. / You don't have permission to claim tickets.", ephemeral=True)
-                return
-
-            # Suponemos que el admin quiere reclamar el ticket en el canal donde está el mensaje
-            channel = interaction_button.channel
-            if channel.name.startswith("ticket-"):
-                # Cambiar permisos para dar acceso a admin y bloquear a otros si se quiere
-                overwrites = channel.overwrites
-                overwrites[interaction_button.user] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
-                await channel.edit(overwrites=overwrites)
-
-                await interaction_button.response.send_message(f"Ticket reclamado por {interaction_button.user.mention} ✅ / Ticket claimed by {interaction_button.user.mention}", ephemeral=True)
-            else:
-                await interaction_button.response.send_message("Este botón solo funciona dentro de un canal de ticket. / This button only works inside a ticket channel.", ephemeral=True)
-
     await interaction.response.send_message(embed=embed, view=TicketView())
-
 
 @bot.tree.command(name="modificarstock", description="Modificar el stock de Robux")
 @app_commands.describe(cantidad="Cantidad para agregar o quitar del stock (negativo para reducir)")
