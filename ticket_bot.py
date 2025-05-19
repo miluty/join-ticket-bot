@@ -431,20 +431,6 @@ async def pases(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed)
 
-
-
-@bot.tree.command(name="g", description="Muestra el grupo de Roblox para la compra de Robux")
-async def grupo_roblox(interaction: discord.Interaction):
-    if not is_allowed_guild(interaction):
-        await interaction.response.send_message("Este comando no está disponible en este servidor.", ephemeral=True)
-        return
-
-    url_grupo = "https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about"
-    mensaje = (
-        f"Para recibir Robux debes estar unido a nuestro grupo de Roblox por al menos 15 días:\n{url_grupo}"
-    )
-    await interaction.response.send_message(mensaje)
-
 @bot.tree.command(name="modificar_stock", description="⚙️ Modifica el stock de Robux")
 @discord.app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(cantidad="Número positivo o negativo para modificar el stock")
@@ -494,3 +480,18 @@ async def robux_prices(interaction: discord.Interaction):
     )
     embed.set_footer(text="Robux Info | Miluty", icon_url=bot.user.display_avatar.url)
     await interaction.response.send_message(embed=embed)
+
+
+@bot.tree.command(name="g", description="🔗 Muestra el grupo de Roblox para la compra de Robux")
+async def grupo_roblox(interaction: discord.Interaction):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Comando no disponible en este servidor.", ephemeral=True)
+        return
+
+    url_grupo = "https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about"
+    mensaje = (
+        "🎮 Para recibir Robux debes estar **unido a nuestro grupo de Roblox** por al menos **15 días**:\n"
+        f"> {url_grupo}"
+    )
+    await interaction.response.send_message(mensaje)
+
