@@ -17,7 +17,7 @@ vouch_channel_id = 1317725063893614633  # Canal donde se envían los vouches
 claimed_tickets = {}  # Para saber qué ticket está reclamado
 ticket_data = {}      # Para guardar datos de cada ticket
 # Asumiendo que defines el stock de Robux globalmente
-bot.robux_stock = 0 # Stock inicial, ajusta según necesites
+bot.robux_stock = 10000000 # Stock inicial, ajusta según necesites
 
 class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
     def __init__(self, tipo):
