@@ -373,3 +373,30 @@ async def anuncio(
 
     await canal.send(content="@everyone", embed=embed)
     await interaction.response.send_message(f"✅ Anuncio enviado correctamente en {canal.mention}", ephemeral=True)
+@bot.tree.command(name="p", description="💸 Ver los pases disponibles para pagar con Robux")
+async def pases(interaction: discord.Interaction):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Este comando no está disponible aquí.", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="🎮 PASES DISPONIBLES DE ROBUX",
+        description="Haz clic en el enlace correspondiente para realizar el pago por tus monedas.\n\n💡 **Avisa al vendedor después de pagar.**",
+        color=discord.Color.green()
+    )
+
+    embed.add_field(name="💰 800 Robux - 300K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1221862182/300K-COINS)", inline=False)
+    embed.add_field(name="💰 150 Robux - 50K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225592623/50K-COINS)", inline=False)
+    embed.add_field(name="💰 280 Robux - 100K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225786585/100K-COINS)", inline=False)
+    embed.add_field(name="💰 420 Robux - 150K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225556629/150K-COINS)", inline=False)
+    embed.add_field(name="💰 560 Robux - 200K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225360744/200K-COINS)", inline=False)
+    embed.add_field(name="💰 700 Robux - 250K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225696591/250K-COINS)", inline=False)
+    embed.add_field(name="💰 950 Robux - 350K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225198806/350K-COINS)", inline=False)
+    embed.add_field(name="💰 1100 Robux - 400K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225774677/400K-COINS)", inline=False)
+    embed.add_field(name="💰 1260 Robux - 450K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225292700/450K-COINS)", inline=False)
+    embed.add_field(name="💰 1400 Robux - 500K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225214961/500K-COINS)", inline=False)
+
+    embed.set_footer(text="Sistema de Ventas | Robux a Coins", icon_url=bot.user.display_avatar.url)
+
+    await interaction.response.send_message(embed=embed)
+
