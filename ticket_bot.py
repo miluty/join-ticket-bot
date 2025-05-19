@@ -417,36 +417,112 @@ bot = MyBot()
 def is_allowed_guild(interaction: discord.Interaction) -> bool:
     return interaction.guild and interaction.guild.id in server_configs
 
-@bot.tree.command(name="robux", description="Muestra la venta de Robux y precios")
+class PurchaseModal(discord.ui.Modal, title="Compra de Robux | Robux Purchase"):
+
+    metodo_pago = discord.ui.TextInput(
+        label="Método de pago / Payment method",
+        placeholder="PayPal / COP / Otro",
+        max_length=20
+    )
+    cantidad = discord.ui.TextInput(
+        label="Cantidad de Robux / Amount of Robux",
+        placeholder="Ejemplo: 500",
+        max_length=6
+    )
+    grupo_confirmacion = discord.ui.TextInput(
+        label="¿Llevas 15 días en el grupo? / Have you been in the group for 15 days?",
+        placeholder="Sí / No",
+        max_length=3
+    )
+
+    def __init__(self, bot, user):
+        super().__init__()
+        self.bot = bot
+        self.user = user
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # Validar cantidad numérica y >= 200
+        try:
+            cantidad_robux = int(self.cantidad.value)
+            if cantidad_robux < 200:
+                await interaction.response.send_message(
+                    "La compra mínima es de 200 Robux / Minimum purchase is 200 Robux.", ephemeral=True
+                )
+                return
+        except ValueError:
+            await interaction.response.send_message("Cantidad inválida / Invalid amount.", ephemeral=True)
+            return
+
+        # Validar confirmación del grupo
+        confirmacion = self.grupo_confirmacion.value.strip().lower()
+        if confirmacion not in ["sí", "si", "yes", "y"]:
+            await interaction.response.send_message(
+                "Debes estar en el grupo mínimo 15 días para comprar Robux. / You must be in the group at least 15 days to purchase Robux.",
+                ephemeral=True
+            )
+            return
+
+        # Validar método de pago (ejemplo simple)
+        metodo = self.metodo_pago.value.strip()
+
+        # Crear canal ticket con permisos
+        guild = interaction.guild
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            self.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            # Podrías agregar permisos para roles de staff/admin aquí
+        }
+        channel = await guild.create_text_channel(
+            f"ticket-{self.user.name}", overwrites=overwrites
+        )
+
+        embed = discord.Embed(title="Nueva compra de Robux / New Robux Purchase", color=discord.Color.blue())
+        embed.add_field(name="Usuario / User", value=self.user.mention, inline=False)
+        embed.add_field(name="Método de pago / Payment method", value=metodo, inline=False)
+        embed.add_field(name="Cantidad / Amount", value=f"{cantidad_robux} Robux", inline=False)
+        embed.add_field(name="Confirmación grupo / Group confirmation", value="Sí", inline=False)
+        embed.add_field(name="Stock actual / Current stock", value=f"{self.bot.robux_stock} Robux disponibles", inline=False)
+
+        mensaje_admin = (
+            "Un admin debe reclamar este ticket para procesar la compra.\n"
+            "Use `/reclamar` o el método que tengas para gestionar tickets.\n\n"
+            "An admin must claim this ticket to process the purchase."
+        )
+
+        await channel.send(self.user.mention, embed=embed)
+        await channel.send(mensaje_admin)
+
+        # Responder al usuario que ticket fue creado
+        await interaction.response.send_message(f"Ticket creado en {channel.mention} / Ticket created!", ephemeral=True)
+
+@bot.tree.command(name="robux", description="Muestra la venta de Robux y precios / Shows Robux prices and stock")
 async def robux(interaction: discord.Interaction):
-    if not is_allowed_guild(interaction):
-        await interaction.response.send_message("Este comando no está disponible en este servidor.", ephemeral=True)
+    if not (interaction.guild and interaction.guild.id in server_configs):
+        await interaction.response.send_message("Este comando no está disponible en este servidor / This command is not available on this server.", ephemeral=True)
         return
 
     precio_cop_por_100 = 3500
     precio_usd_por_100 = 1
     stock = bot.robux_stock
 
-    embed = discord.Embed(title="Venta de Robux", color=discord.Color.green())
-    embed.add_field(name="Stock actual", value=f"{stock} Robux disponibles", inline=False)
-    embed.add_field(name="Precio en pesos colombianos (COP)", value=f"{precio_cop_por_100} COP por cada 100 Robux", inline=False)
-    embed.add_field(name="Precio en USD", value=f"1 USD por cada 100 Robux (compra mínima 200 Robux)", inline=False)
+    embed = discord.Embed(
+        title="Venta de Robux / Robux Sale",
+        description="Compra Robux fácilmente aquí / Buy Robux easily here",
+        color=discord.Color.green()
+    )
+    embed.add_field(name="Stock actual / Current stock", value=f"{stock} Robux disponibles", inline=False)
+    embed.add_field(name="Precio COP / COP price", value=f"{precio_cop_por_100} COP por cada 100 Robux", inline=False)
+    embed.add_field(name="Precio USD / USD price", value=f"1 USD por cada 100 Robux (mínimo 200) / 1 USD per 100 Robux (min 200)", inline=False)
 
     class TicketButton(discord.ui.View):
-        @discord.ui.button(label="Abrir ticket", style=discord.ButtonStyle.primary)
+        @discord.ui.button(label="Abrir ticket / Open ticket", style=discord.ButtonStyle.primary)
         async def open_ticket(self, interaction_button: discord.Interaction, button: discord.ui.Button):
-            if not is_allowed_guild(interaction_button):
-                await interaction_button.response.send_message("No puedes usar este botón en este servidor.", ephemeral=True)
+            if not (interaction_button.guild and interaction_button.guild.id in server_configs):
+                await interaction_button.response.send_message("No puedes usar este botón en este servidor / You can't use this button on this server.", ephemeral=True)
                 return
 
-            guild = interaction_button.guild
-            overwrites = {
-                guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                interaction_button.user: discord.PermissionOverwrite(read_messages=True, send_messages=True)
-            }
-            channel = await guild.create_text_channel(f"ticket-{interaction_button.user.name}", overwrites=overwrites)
-            await channel.send(f"{interaction_button.user.mention} Este es tu ticket para la compra de Robux.")
-            await interaction_button.response.send_message("Ticket creado!", ephemeral=True)
+            modal = PurchaseModal(bot, interaction_button.user)
+            await interaction_button.response.send_modal(modal)
 
     await interaction.response.send_message(embed=embed, view=TicketButton())
 
