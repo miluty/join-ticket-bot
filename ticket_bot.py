@@ -473,3 +473,24 @@ async def modificar_stock_error(interaction: discord.Interaction, error):
     else:
         await interaction.response.send_message("❌ Ocurrió un error al ejecutar el comando.", ephemeral=True)
 
+@bot.tree.command(name="r", description="💵 Muestra los precios de los Robux en inglés y español")
+async def robux_prices(interaction: discord.Interaction):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Comando no disponible en este servidor.", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="💸 Robux Prices / Precios de Robux",
+        description=(
+            "**🇺🇸 English:**\n"
+            "> 💵 100 Robux = 1 USD\n"
+            "> 🎯 Minimum Purchase: 200 Robux\n\n"
+            "**🇪🇸 Español:**\n"
+            "> 💵 100 Robux = 1 USD o 3,500 COP\n"
+            "> 🎯 Compra mínima: 200 Robux"
+        ),
+        color=discord.Color.blue(),
+        timestamp=datetime.datetime.utcnow()
+    )
+    embed.set_footer(text="Robux Info | Miluty", icon_url=bot.user.display_avatar.url)
+    await interaction.response.send_message(embed=embed)
