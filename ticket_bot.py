@@ -401,6 +401,10 @@ async def pases(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 @bot.tree.command(name="robux", description="💰 Consulta stock y compra Robux en pesos colombianos o PayPal")
 async def robux(interaction: discord.Interaction):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Este comando no está configurado para este servidor.", ephemeral=True)
+        return
+
     stock = server_configs[interaction.guild_id].get("robux_stock", 0)
 
     embed = discord.Embed(
@@ -456,9 +460,9 @@ async def robux(interaction: discord.Interaction):
                         title="🎫 Nueva Solicitud de Robux",
                         description=(
                             f"👤 **Usuario:** {interaction.user.mention}\n"
-                            f"🔢 **Cantidad:** {self.cantidad}\n"
-                            f"💳 **Método de Pago:** {self.metodo}\n"
-                            f"🕹️ **Usuario Roblox:** `{self.usuario_roblox}`\n\n"
+                            f"🔢 **Cantidad:** {self.cantidad.value}\n"
+                            f"💳 **Método de Pago:** {self.metodo.value}\n"
+                            f"🕹️ **Usuario Roblox:** `{self.usuario_roblox.value}`\n\n"
                             f"📌 Un staff atenderá tu solicitud pronto. ¡Gracias por tu compra!"
                         ),
                         color=discord.Color.green(),
@@ -472,28 +476,3 @@ async def robux(interaction: discord.Interaction):
             await interaction_btn.response.send_modal(ModalCompraRobux())
 
     await interaction.response.send_message(embed=embed, view=ComprarRobuxButton())
-
-@bot.tree.command(name="stockrobux", description="🛠️ Modifica el stock de Robux disponible")
-@app_commands.checks.has_permissions(administrator=True)
-@app_commands.describe(stock="Cantidad de Robux en stock")
-async def stockrobux(interaction: discord.Interaction, stock: int):
-    if stock < 0:
-        await interaction.response.send_message("❌ El stock no puede ser negativo.", ephemeral=True)
-        return
-    server_configs[interaction.guild_id]["robux_stock"] = stock
-    await interaction.response.send_message(f"✅ Stock actualizado a {stock} Robux.", ephemeral=True)
-@bot.tree.command(name="g", description="🔗 Muestra el grupo de Roblox al que debes unirte")
-async def g(interaction: discord.Interaction):
-    embed = discord.Embed(
-        title="🤝 Únete a nuestro grupo en Roblox",
-        description=(
-            "**Para poder recibir tus Robux debes estar en el grupo por al menos 15 días.**\n\n"
-            "🔗 [Haz clic aquí para unirte al grupo](https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about)"
-        ),
-        color=discord.Color.blue()
-    )
-    embed.set_thumbnail(url="https://tr.rbxcdn.com/96c61509b4e35cfb066963f4e9261d20/150/150/Image/Png")  # Puedes cambiarlo si tienes logo
-
-    embed.set_footer(text="CoinsVerse | Grupo Oficial", icon_url=bot.user.display_avatar.url)
-    await interaction.response.send_message(embed=embed)
-
