@@ -16,15 +16,25 @@ vouch_channel_id = 1317725063893614633  # Canal donde se envían los vouches
 
 claimed_tickets = {}  # Para saber qué ticket está reclamado
 ticket_data = {}      # Para guardar datos de cada ticket
-stock_robux = 0 
-# Modal para ingresar datos de compra
+# Asumiendo que defines el stock de Robux globalmente
+bot.robux_stock = 0 # Stock inicial, ajusta según necesites
+
 class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
     def __init__(self, tipo):
         super().__init__()
         self.tipo = tipo
 
+        if tipo == "fruit":
+            label_cantidad = "¿Cuánta 🍉 fruta quieres comprar?"
+        elif tipo == "coins":
+            label_cantidad = "¿Cuántas 💰 coins quieres comprar?"
+        elif tipo == "robux":
+            label_cantidad = "¿Cuántos 🎮 Robux quieres comprar?"
+        else:
+            label_cantidad = "Cantidad"
+
         self.cantidad = discord.ui.TextInput(
-            label=f"¿Cuánta {'🍉 fruta' if tipo == 'fruit' else '💰 coins'} quieres comprar?",
+            label=label_cantidad,
             placeholder="Ej: 1, 10, 100...",
             required=True,
             style=discord.TextStyle.short,
@@ -42,6 +52,19 @@ class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
         self.add_item(self.metodo_pago)
 
     async def on_submit(self, interaction: discord.Interaction):
+        if self.tipo == "robux":
+            try:
+                cantidad_robux = int(self.cantidad.value)
+            except ValueError:
+                await interaction.response.send_message("❌ La cantidad debe ser un número válido.", ephemeral=True)
+                return
+
+            if cantidad_robux > bot.robux_stock:
+                await interaction.response.send_message(f"❌ No hay suficiente stock de Robux. Stock actual: {bot.robux_stock}", ephemeral=True)
+                return
+
+            bot.robux_stock -= cantidad_robux
+
         overwrites = {
             interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
             interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
@@ -57,9 +80,14 @@ class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
             topic=str(interaction.user.id)
         )
 
-        # Guardar datos para usar en /ventahecha
+        producto_nombre = {
+            "fruit": "🍉 Fruta",
+            "coins": "💰 Coins",
+            "robux": "🎮 Robux"
+        }.get(self.tipo, "Producto desconocido")
+
         ticket_data[channel.id] = {
-            "producto": "🍉 Fruta" if self.tipo == "fruit" else "💰 Coins",
+            "producto": producto_nombre,
             "cantidad": self.cantidad.value,
             "metodo": self.metodo_pago.value
         }
@@ -70,9 +98,10 @@ class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
             title="💼 Ticket de Venta",
             description=(
                 f"👤 **Cliente:** {interaction.user.mention}\n"
-                f"📦 **Producto:** {'🍉 Fruta' if self.tipo == 'fruit' else '💰 Coins'}\n"
+                f"📦 **Producto:** {producto_nombre}\n"
                 f"🔢 **Cantidad:** {self.cantidad.value}\n"
-                f"💳 **Pago:** {self.metodo_pago.value}"
+                f"💳 **Pago:** {self.metodo_pago.value}\n"
+                + (f"📉 **Stock restante de Robux:** {bot.robux_stock}" if self.tipo == "robux" else "")
             ),
             color=discord.Color.orange(),
             timestamp=datetime.datetime.utcnow()
@@ -111,6 +140,7 @@ class PanelView(discord.ui.View):
         options = [
             discord.SelectOption(label="🍉 Comprar Fruta", value="fruit", description="Compra fruta premium"),
             discord.SelectOption(label="💰 Comprar Coins", value="coins", description="Compra monedas del juego"),
+            discord.SelectOption(label="🎮 Comprar Robux", value="robux", description="Compra Robux para Roblox"),
         ]
         select = discord.ui.Select(placeholder="Selecciona un producto 🍽️", options=options)
         select.callback = self.select_callback
@@ -155,7 +185,7 @@ async def ventahecha(interaction: discord.Interaction):
         await interaction.response.send_message("❌ Comando no disponible aquí.", ephemeral=True)
         return
 
-    if not interaction.channel.name.startswith(("fruit", "coins")):
+    if not interaction.channel.name.startswith(("fruit", "coins", "robux")):
         await interaction.response.send_message("❌ Solo se puede usar en tickets de venta.", ephemeral=True)
         return
 
@@ -213,6 +243,7 @@ async def ventahecha(interaction: discord.Interaction):
         "📩 **Esperando confirmación del cliente...**\nPor favor confirma que recibiste tu producto.",
         view=ConfirmView()
     )
+
 
 @bot.tree.command(name="price", description="💰 Muestra la lista de precios de Coins y Robux / Shows Coins and Robux price list")
 async def price(interaction: discord.Interaction):
@@ -414,4 +445,31 @@ async def grupo_roblox(interaction: discord.Interaction):
     )
     await interaction.response.send_message(mensaje)
 
+@bot.tree.command(name="modificar_stock", description="⚙️ Modifica el stock de Robux")
+@discord.app_commands.checks.has_permissions(administrator=True)
+@app_commands.describe(cantidad="Número positivo o negativo para modificar el stock")
+async def modificar_stock(interaction: discord.Interaction, cantidad: int):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Comando no disponible en este servidor.", ephemeral=True)
+        return
+
+    global robux_stock
+    if 'robux_stock' not in globals():
+        robux_stock = 0
+
+    robux_stock += cantidad
+
+    if robux_stock < 0:
+        robux_stock = 0
+        await interaction.response.send_message("⚠️ El stock no puede ser negativo. Se ajustó a 0.", ephemeral=True)
+        return
+
+    await interaction.response.send_message(f"✅ El stock de Robux ha sido actualizado a {robux_stock}", ephemeral=True)
+
+@modificar_stock.error
+async def modificar_stock_error(interaction: discord.Interaction, error):
+    if isinstance(error, discord.app_commands.errors.MissingPermissions):
+        await interaction.response.send_message("❌ No tienes permiso para usar este comando.", ephemeral=True)
+    else:
+        await interaction.response.send_message("❌ Ocurrió un error al ejecutar el comando.", ephemeral=True)
 
