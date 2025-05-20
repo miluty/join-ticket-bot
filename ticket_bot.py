@@ -487,19 +487,6 @@ async def robux_prices(interaction: discord.Interaction):
     )
     embed.set_footer(text="Robux Info | Miluty", icon_url=bot.user.display_avatar.url)
     await interaction.response.send_message(embed=embed)
-
-@bot.tree.command(name="g", description="🔗 Muestra el grupo de Roblox para la compra de Robux")
-async def grupo_roblox(interaction: discord.Interaction):
-    if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible en este servidor.", ephemeral=True)
-        return
-
-    url_grupo = "https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about"
-    mensaje = (
-        "🎮 Para recibir Robux debes estar **unido a nuestro grupo de Roblox** por al menos **15 días**:\n"
-        f"> {url_grupo}"
-    )
-    await interaction.response.send_message(mensaje)
 @bot.tree.command(name="poll", description="📊 Crea una encuesta de enfrentamiento / Create a versus poll")
 @app_commands.describe(
     quien1="Primer contrincante / First contestant",
@@ -528,9 +515,23 @@ async def poll(
     )
     embed.set_footer(text="Sistema de Encuestas | Poll System", icon_url=bot.user.display_avatar.url)
 
-    await interaction.response.send_message(embed=embed)
-    message = await interaction.original_response()
+    await interaction.response.send_message("✅ Encuesta creada correctamente. / Poll created successfully.", ephemeral=True)
 
+    message = await interaction.followup.send(embed=embed)
     await message.add_reaction("1️⃣")
     await message.add_reaction("2️⃣")
+
+@bot.tree.command(name="g", description="🔗 Muestra el grupo de Roblox para la compra de Robux")
+async def grupo_roblox(interaction: discord.Interaction):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Comando no disponible en este servidor.", ephemeral=True)
+        return
+
+    url_grupo = "https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about"
+    mensaje = (
+        "🎮 Para recibir Robux debes estar **unido a nuestro grupo de Roblox** por al menos **15 días**:\n"
+        f"> {url_grupo}"
+    )
+    await interaction.response.send_message(mensaje)
+
 
