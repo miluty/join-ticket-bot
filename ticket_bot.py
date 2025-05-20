@@ -293,12 +293,12 @@ async def price(interaction: discord.Interaction):
 
 async def setup(bot):
     await bot.add_cog(Vouch(bot))
-@bot.tree.command(name="vouch", description="📝 Deja una calificación y sube pruebas para un vendedor")
+@bot.tree.command(name="vouch", description="📝 Deja una calificación y sube pruebas para un vendedor / Leave a rating and upload proof for a seller")
 @app_commands.describe(
-    usuario="Usuario al que haces vouch",
-    producto="Producto comprado",
-    estrellas="Calificación (1 a 5 estrellas)",
-    imagen="Imagen de prueba (opcional)"
+    usuario="Usuario al que haces vouch / User you're vouching for",
+    producto="Producto comprado / Product purchased",
+    estrellas="Calificación (1 a 5 estrellas) / Rating (1 to 5 stars)",
+    imagen="Imagen de prueba (opcional) / Proof image (optional)"
 )
 async def vouch(
     interaction: discord.Interaction,
@@ -308,32 +308,36 @@ async def vouch(
     imagen: discord.Attachment = None
 ):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible aquí.", ephemeral=True)
+        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
         return
 
     if estrellas < 1 or estrellas > 5:
-        await interaction.response.send_message("❌ La calificación debe estar entre 1 y 5 estrellas.", ephemeral=True)
+        await interaction.response.send_message("❌ La calificación debe estar entre 1 y 5 estrellas. / Rating must be between 1 and 5 stars.", ephemeral=True)
         return
 
     estrellas_str = "⭐" * estrellas + "☆" * (5 - estrellas)
 
     embed = discord.Embed(
-        title="🧾 Nuevo Vouch Recibido",
+        title="🧾 Nuevo Vouch Recibido / New Vouch Received",
         description=(
-            f"👤 **Vouch por:** {interaction.user.mention}\n"
-            f"🙋‍♂️ **Para:** {usuario.mention}\n"
-            f"📦 **Producto:** {producto}\n"
-            f"⭐ **Calificación:** {estrellas_str}\n"
+            f"**👤 Vouch por / From:** {interaction.user.mention}\n"
+            f"**🙋‍♂️ Para / For:** {usuario.mention}\n"
+            f"**📦 Producto / Product:** {producto}\n"
+            f"**⭐ Calificación / Rating:** {estrellas_str}"
         ),
         color=discord.Color.gold(),
         timestamp=datetime.datetime.utcnow()
     )
-    embed.set_footer(text="Sistema de Ventas | ", icon_url=bot.user.display_avatar.url)
+    embed.set_footer(text="Sistema de Ventas | Sales System", icon_url=bot.user.display_avatar.url)
 
     if imagen:
         embed.set_image(url=imagen.url)
 
-    await interaction.response.send_message(embed=embed)
+    message = await interaction.response.send_message(embed=embed, wait=True)
+    
+    # Añadir reacción de corazón ❤️
+    await message.add_reaction("❤️")
+
 @bot.tree.command(name="ruleta", description="🎲 Sortea un premio entre los miembros del servidor")
 @app_commands.describe(
     premio="Describe el premio que se sortea"
@@ -493,4 +497,37 @@ async def grupo_roblox(interaction: discord.Interaction):
         f"> {url_grupo}"
     )
     await interaction.response.send_message(mensaje)
+@bot.tree.command(name="poll", description="📊 Crea una encuesta de enfrentamiento / Create a versus poll")
+@app_commands.describe(
+    quien1="Primer contrincante / First contestant",
+    quien2="Segundo contrincante / Second contestant",
+    duracion="Duración en minutos (solo informativa) / Duration in minutes (informative only)"
+)
+async def poll(
+    interaction: discord.Interaction,
+    quien1: str,
+    quien2: str,
+    duracion: int
+):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Comando no disponible en este servidor. / Command not available in this server.", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="⚔️ ¿Quién ganará? / Who Will Win?",
+        description=(
+            f"**1️⃣ {quien1}**\n"
+            f"**2️⃣ {quien2}**\n\n"
+            f"⏳ **Duración / Duration:** {duracion} minutos"
+        ),
+        color=discord.Color.purple(),
+        timestamp=datetime.datetime.utcnow()
+    )
+    embed.set_footer(text="Sistema de Encuestas | Poll System", icon_url=bot.user.display_avatar.url)
+
+    await interaction.response.send_message(embed=embed)
+    message = await interaction.original_response()
+
+    await message.add_reaction("1️⃣")
+    await message.add_reaction("2️⃣")
 
