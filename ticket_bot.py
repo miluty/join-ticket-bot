@@ -333,10 +333,13 @@ async def vouch(
     if imagen:
         embed.set_image(url=imagen.url)
 
-    message = await interaction.response.send_message(embed=embed, wait=True)
-    
-    # Añadir reacción de corazón ❤️
+    # Responde primero al slash command
+    await interaction.response.send_message("✅ Vouch enviado correctamente / Vouch successfully submitted", ephemeral=True)
+
+    # Envía el mensaje públicamente con el embed y guarda el mensaje para reaccionar
+    message = await interaction.channel.send(embed=embed)
     await message.add_reaction("❤️")
+
 
 @bot.tree.command(name="ruleta", description="🎲 Sortea un premio entre los miembros del servidor")
 @app_commands.describe(
