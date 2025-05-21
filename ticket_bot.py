@@ -106,7 +106,7 @@ class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
             color=discord.Color.orange(),
             timestamp=datetime.datetime.utcnow()
         )
-        embed_ticket.set_footer(text="Sistema de Tickets | Miluty", icon_url=bot.user.display_avatar.url)
+        embed_ticket.set_footer(text="Sistema de Tickets |", icon_url=bot.user.display_avatar.url)
 
         await channel.send(content=interaction.user.mention, embed=embed_ticket, view=claim_view)
         await interaction.response.send_message(f"✅ Ticket creado: {channel.mention}", ephemeral=True)
@@ -176,7 +176,7 @@ async def panel(interaction: discord.Interaction):
         color=discord.Color.green(),
         timestamp=datetime.datetime.utcnow()
     )
-    embed.set_footer(text="Sistema de Tickets | Miluty", icon_url=bot.user.display_avatar.url)
+    embed.set_footer(text="Sistema de Tickets |", icon_url=bot.user.display_avatar.url)
     await interaction.response.send_message(embed=embed, view=PanelView())
 
 @bot.tree.command(name="ventahecha", description="✅ Confirma la venta y cierra el ticket")
@@ -225,7 +225,7 @@ async def ventahecha(interaction: discord.Interaction):
                 color=discord.Color.gold(),
                 timestamp=datetime.datetime.utcnow()
             )
-            embed.set_footer(text="Sistema de Ventas | Miluty", icon_url=bot.user.display_avatar.url)
+            embed.set_footer(text="Sistema de Ventas |", icon_url=bot.user.display_avatar.url)
             await vouch_channel.send(embed=embed)
             await interaction_btn.response.send_message("✅ Venta confirmada. Cerrando ticket...", ephemeral=False)
             ticket_data.pop(interaction.channel.id, None)
