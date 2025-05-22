@@ -254,9 +254,9 @@ async def price(interaction: discord.Interaction):
     embed = discord.Embed(
         title="🎉 ¡Precios Increíbles! / Amazing Prices! 🎉",
         description=(
-            "¿Listo para subir de nivel? Compra **Coins** con **Robux** de forma sencilla y segura.\n"
-            "Ready to level up? Buy **Coins** with **Robux** easily and safely!\n\n"
-            "💡 *Cada 50,000 Coins → 140 Robux y $1 USD* / *Each 50,000 Coins → 140 Robux and $1 USD*\n"
+            "¿Listo para subir de nivel? Compra **Coins**, cuentas o servicios fácilmente.\n"
+            "Ready to level up? Buy **Coins**, accounts or services easily.\n\n"
+            "💡 *Cada 50,000 Coins → 140 Robux o $1 USD* / *Each 50,000 Coins → 140 Robux or $1 USD*\n"
             "🚀 ¡Haz tu pedido y empieza la aventura! / Make your order and start the adventure!"
         ),
         color=0xE91E63,
@@ -266,6 +266,7 @@ async def price(interaction: discord.Interaction):
     embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")
     embed.set_author(name="💎 Sistema de Precios / Price System", icon_url="https://i.imgur.com/3i1S0cL.png")
 
+    # Lista de precios de Coins
     prices = [
         (50_000, 140, 1),
         (100_000, 280, 2),
@@ -274,9 +275,9 @@ async def price(interaction: discord.Interaction):
         (250_000, 700, 5),
         (300_000, 840, 6),
         (350_000, 980, 7),
-        (400_000, 1_120, 8),
-        (450_000, 1_260, 9),
-        (500_000, 1_400, 10),
+        (400_000, 1120, 8),
+        (450_000, 1260, 9),
+        (500_000, 1400, 10),
     ]
 
     for coins, robux, usd in prices:
@@ -286,9 +287,23 @@ async def price(interaction: discord.Interaction):
             inline=True,
         )
 
-    embed.set_footer(text="✨ ¡Gracias por elegirnos! / Thanks for choosing us! ✨")
+    # Nuevos productos y servicios
+    embed.add_field(
+        name="🧠 Max Account Mojo",
+        value="💵 $5.00 USD\n📩 Abre un ticket para comprar.\n📩 Open a ticket to buy.",
+        inline=False,
+    )
+
+    embed.add_field(
+        name="🍍 Farm de Fruta / Fruit Farm",
+        value="📩 Abre un ticket para conocer precios y disponibilidad.\n📩 Open a ticket to check prices and availability.",
+        inline=False,
+    )
+
+    embed.set_footer(text="✨ ¡Gracias por elegirnos! / Thanks for choosing us! ✨", icon_url=bot.user.display_avatar.url)
 
     await interaction.response.send_message(embed=embed)
+
 
 
 async def setup(bot):
@@ -411,52 +426,31 @@ async def anuncio(
 
     await canal.send(content="@everyone", embed=embed)
     await interaction.response.send_message(f"✅ Anuncio enviado correctamente en {canal.mention}", ephemeral=True)
-@bot.tree.command(name="p", description="💸 Ver opciones de compra / View purchase options")
+    
+@bot.tree.command(name="p", description="💸 Ver los pases disponibles para pagar con Robux")
 async def pases(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Este comando no está disponible aquí. / This command is not available here.", ephemeral=True)
+        await interaction.response.send_message("❌ Este comando no está disponible aquí.", ephemeral=True)
         return
 
     embed = discord.Embed(
-        title="💸 OPCIONES DE COMPRA / PURCHASE OPTIONS",
-        description=(
-            "**🎮 PASES DE ROBUX PARA COINS / ROBUX PASSES FOR COINS**\n"
-            "Haz clic en el pase para pagar con Robux.\n"
-            "Click the pass link to pay with Robux.\n\n"
-            "**🛒 OTROS SERVICIOS / OTHER SERVICES**\n"
-            "Abre un ticket para más información.\n"
-            "Open a ticket for more info."
-        ),
-        color=discord.Color.gold()
+        title="🎮 PASES DISPONIBLES DE ROBUX",
+        description="Haz clic en el enlace correspondiente para realizar el pago por tus monedas.\n\n💡 **Avisa al vendedor después de pagar.**",
+        color=discord.Color.green()
     )
 
-    # Robux passes
-    embed.add_field(name="💰 800 Robux - 300K Coins", value="[Comprar / Buy](https://www.roblox.com/es/game-pass/1221862182/300K-COINS)", inline=False)
-    embed.add_field(name="💰 150 Robux - 50K Coins", value="[Comprar / Buy](https://www.roblox.com/es/game-pass/1225592623/50K-COINS)", inline=False)
-    embed.add_field(name="💰 280 Robux - 100K Coins", value="[Comprar / Buy](https://www.roblox.com/es/game-pass/1225786585/100K-COINS)", inline=False)
-    embed.add_field(name="💰 420 Robux - 150K Coins", value="[Comprar / Buy](https://www.roblox.com/es/game-pass/1225556629/150K-COINS)", inline=False)
-    embed.add_field(name="💰 560 Robux - 200K Coins", value="[Comprar / Buy](https://www.roblox.com/es/game-pass/1225360744/200K-COINS)", inline=False)
-    embed.add_field(name="💰 700 Robux - 250K Coins", value="[Comprar / Buy](https://www.roblox.com/es/game-pass/1225696591/250K-COINS)", inline=False)
-    embed.add_field(name="💰 950 Robux - 350K Coins", value="[Comprar / Buy](https://www.roblox.com/es/game-pass/1225198806/350K-COINS)", inline=False)
-    embed.add_field(name="💰 1100 Robux - 400K Coins", value="[Comprar / Buy](https://www.roblox.com/es/game-pass/1225774677/400K-COINS)", inline=False)
-    embed.add_field(name="💰 1260 Robux - 450K Coins", value="[Comprar / Buy](https://www.roblox.com/es/game-pass/1225292700/450K-COINS)", inline=False)
-    embed.add_field(name="💰 1400 Robux - 500K Coins", value="[Comprar / Buy](https://www.roblox.com/es/game-pass/1225214961/500K-COINS)", inline=False)
+    embed.add_field(name="💰 800 Robux - 300K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1221862182/300K-COINS)", inline=False)
+    embed.add_field(name="💰 150 Robux - 50K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225592623/50K-COINS)", inline=False)
+    embed.add_field(name="💰 280 Robux - 100K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225786585/100K-COINS)", inline=False)
+    embed.add_field(name="💰 420 Robux - 150K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225556629/150K-COINS)", inline=False)
+    embed.add_field(name="💰 560 Robux - 200K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225360744/200K-COINS)", inline=False)
+    embed.add_field(name="💰 700 Robux - 250K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225696591/250K-COINS)", inline=False)
+    embed.add_field(name="💰 950 Robux - 350K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225198806/350K-COINS)", inline=False)
+    embed.add_field(name="💰 1100 Robux - 400K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225774677/400K-COINS)", inline=False)
+    embed.add_field(name="💰 1260 Robux - 450K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225292700/450K-COINS)", inline=False)
+    embed.add_field(name="💰 1400 Robux - 500K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225214961/500K-COINS)", inline=False)
 
-    # Otros servicios
-    embed.add_field(
-        name="🧠 Max Account Mojo - 5 USD",
-        value="Contáctanos abriendo un ticket para obtener tu cuenta Max Mojo.\nContact us by opening a ticket to get your Max Mojo account.",
-        inline=False
-    )
-    embed.add_field(
-        name="🍍 Farm de fruta / Fruit Farm",
-        value="Abre un ticket para conocer precios y disponibilidad.\nOpen a ticket to check prices and availability.",
-        inline=False
-    )
-
-    embed.set_footer(text="Sistema de Ventas | Robux - Cuentas - Farm", icon_url=bot.user.display_avatar.url)
-
-    await interaction.response.send_message(embed=embed)
+    embed.set_footer(text="Sistema de Ventas | Robux a Coins", icon_url=bot.user.display_avatar.url)
 
 
 @bot.tree.command(name="modificar_stock", description="⚙️ Modifica el stock de Robux")
