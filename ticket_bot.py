@@ -225,70 +225,103 @@ async def panel(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed, view=PanelView())
 
-@bot.tree.command(name="ventahecha", description="✅ Confirma la venta y cierra el ticket")
+@bot.tree.command(name="ventahecha", description="✅ Confirm sale and close ticket / Confirma la venta y cierra el ticket")
 async def ventahecha(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible aquí.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Command not available here. / Comando no disponible aquí.", ephemeral=True)
         return
 
-    if not interaction.channel.name.startswith(("fruit", "coins", "robux")):
-        await interaction.response.send_message("❌ Solo se puede usar en tickets de venta.", ephemeral=True)
+    channel_name = interaction.channel.name.lower()
+    if not channel_name.startswith(("fruit", "coins", "robux")):
+        await interaction.response.send_message(
+            "❌ This command can only be used in sales tickets. / Solo se puede usar en tickets de venta.", ephemeral=True)
         return
 
     datos = ticket_data.get(interaction.channel.id)
     if not datos:
-        await interaction.response.send_message("❌ No se encontraron datos del ticket.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ No ticket data found. / No se encontraron datos del ticket.", ephemeral=True)
         return
 
-    producto = datos.get("producto", "No especificado")
-    cantidad = datos.get("cantidad", "No especificada")
-    metodo = datos.get("metodo", "No especificado")
+    producto = datos.get("producto", "Not specified / No especificado")
+    cantidad = datos.get("cantidad", "Not specified / No especificada")
+    metodo = datos.get("metodo", "Not specified / No especificado")
+
+    # Obtener ID cliente guardado en topic (debe ser el ID en string)
+    cliente_id_str = interaction.channel.topic
+    if not cliente_id_str:
+        await interaction.response.send_message(
+            "❌ Client ID not set in channel topic. / No se encontró el ID del cliente en el topic del canal.", ephemeral=True)
+        return
+
+    cliente_id = int(cliente_id_str)
 
     class ConfirmView(discord.ui.View):
         def __init__(self):
             super().__init__(timeout=120)
 
-        @discord.ui.button(label="✅ Confirmar", style=discord.ButtonStyle.success, emoji="✔️")
+        def is_authorized(self, user: discord.User):
+            # Solo el cliente o quien tenga permiso de administrador puede confirmar/denegar
+            member = interaction.guild.get_member(user.id)
+            if user.id == cliente_id:
+                return True
+            if member and member.guild_permissions.administrator:
+                return True
+            return False
+
+        @discord.ui.button(label="✅ Confirm / Confirmar", style=discord.ButtonStyle.success, emoji="✔️")
         async def confirm(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
-            if str(interaction_btn.user.id) != interaction.channel.topic:
-                await interaction_btn.response.send_message("❌ Solo el cliente puede confirmar.", ephemeral=True)
+            if not self.is_authorized(interaction_btn.user):
+                await interaction_btn.response.send_message(
+                    "❌ Only the client or admins can confirm. / Solo el cliente o admins pueden confirmar.", ephemeral=True)
                 return
 
             vouch_channel = interaction.guild.get_channel(vouch_channel_id)
             if not vouch_channel:
-                await interaction_btn.response.send_message("❌ Canal de vouches no encontrado.", ephemeral=True)
+                await interaction_btn.response.send_message(
+                    "❌ Vouch channel not found. / Canal de vouches no encontrado.", ephemeral=True)
                 return
 
             embed = discord.Embed(
-                title="🧾 Vouch de Venta Completada",
+                title="🧾 Sale Completed Vouch / Vouch de Venta Completada",
                 description=(
-                    f"👤 **Staff:** {interaction.user.mention}\n"
-                    f"🙋‍♂️ **Cliente:** {interaction_btn.user.mention}\n"
-                    f"📦 **Producto:** {producto}\n"
-                    f"🔢 **Cantidad:** {cantidad}\n"
-                    f"💳 **Método de Pago:** {metodo}"
+                    f"👤 **Staff:** {interaction_btn.user.mention}\n"
+                    f"🙋‍♂️ **Client / Cliente:** <@{cliente_id}>\n"
+                    f"📦 **Product / Producto:** {producto}\n"
+                    f"🔢 **Quantity / Cantidad:** {cantidad}\n"
+                    f"💳 **Payment Method / Método de Pago:** {metodo}"
                 ),
                 color=discord.Color.gold(),
                 timestamp=datetime.datetime.utcnow()
             )
-            embed.set_footer(text="Sistema de Ventas |", icon_url=bot.user.display_avatar.url)
+            embed.set_footer(text="Sales System | Sistema de Ventas", icon_url=bot.user.display_avatar.url)
             await vouch_channel.send(embed=embed)
-            await interaction_btn.response.send_message("✅ Venta confirmada. Cerrando ticket...", ephemeral=False)
+
+            await interaction_btn.response.send_message(
+                "✅ Sale confirmed. Closing the ticket... / Venta confirmada. Cerrando ticket...", ephemeral=False)
+
             ticket_data.pop(interaction.channel.id, None)
             await interaction.channel.delete()
 
-        @discord.ui.button(label="❌ Negar", style=discord.ButtonStyle.danger, emoji="✖️")
+        @discord.ui.button(label="❌ Deny / Negar", style=discord.ButtonStyle.danger, emoji="✖️")
         async def deny(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
-            if str(interaction_btn.user.id) != interaction.channel.topic:
-                await interaction_btn.response.send_message("❌ Solo el cliente puede negar.", ephemeral=True)
+            if not self.is_authorized(interaction_btn.user):
+                await interaction_btn.response.send_message(
+                    "❌ Only the client or admins can deny. / Solo el cliente o admins pueden negar.", ephemeral=True)
                 return
-            await interaction_btn.response.send_message("❌ Venta negada. El ticket sigue abierto.", ephemeral=True)
+
+            await interaction_btn.response.send_message(
+                "❌ Sale denied. The ticket remains open. / Venta negada. El ticket sigue abierto.", ephemeral=True)
             self.stop()
 
     await interaction.response.send_message(
+        "📩 **Waiting for client confirmation...**\nPlease confirm that you received your product.\n\n"
         "📩 **Esperando confirmación del cliente...**\nPor favor confirma que recibiste tu producto.",
         view=ConfirmView()
     )
+
+
 @bot.tree.command(name="price", description="💰 Muestra la lista de precios de Coins y Robux / Shows Coins and Robux price list")
 async def price(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
