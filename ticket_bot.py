@@ -487,7 +487,11 @@ async def pases(interaction: discord.Interaction):
     embed.set_footer(text="💳 Sistema de Ventas | Robux a Coins", icon_url=bot.user.display_avatar.url)
 
     await interaction.response.send_message(embed=embed, ephemeral=False)
-@bot.tree.command(name="rules", description="Muestra las reglas del servidor de ventas")
+@tree.command(
+    name="rules",
+    description="📜 Muestra las reglas del servidor de ventas",
+    guild=discord.Object(id=server_configs[0])  # Usa el primer ID de tu lista
+)
 async def rules(interaction: discord.Interaction):
     embed = discord.Embed(
         title="📜 Reglas del Servidor",
@@ -502,7 +506,6 @@ async def rules(interaction: discord.Interaction):
     embed.set_footer(text="El incumplimiento de estas reglas puede conllevar advertencias, bloqueos o expulsión.")
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 @bot.tree.command(name="r", description="💵 Muestra los precios de los Robux en inglés y español")
 async def robux_prices(interaction: discord.Interaction):
