@@ -441,22 +441,37 @@ async def pases(interaction: discord.Interaction):
 
     embed = discord.Embed(
         title="🎮 PASES DISPONIBLES DE ROBUX",
-        description="Haz clic en el enlace correspondiente para realizar el pago por tus monedas.\n\n💡 **Avisa al vendedor después de pagar.**",
-        color=discord.Color.green()
+        description=(
+            "Haz clic en el enlace correspondiente para realizar el pago por tus monedas.\n"
+            "📝 **Recuerda avisar al vendedor después de completar el pago.**\n\n"
+            "━━━━━━━━━━━━━━━━━━━━"
+        ),
+        color=discord.Color.from_rgb(35, 209, 96)  # Verde más brillante
     )
 
-    embed.add_field(name="💰 800 Robux - 300K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1221862182/300K-COINS)", inline=False)
-    embed.add_field(name="💰 150 Robux - 50K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225592623/50K-COINS)", inline=False)
-    embed.add_field(name="💰 280 Robux - 100K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225786585/100K-COINS)", inline=False)
-    embed.add_field(name="💰 420 Robux - 150K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225556629/150K-COINS)", inline=False)
-    embed.add_field(name="💰 560 Robux - 200K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225360744/200K-COINS)", inline=False)
-    embed.add_field(name="💰 700 Robux - 250K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225696591/250K-COINS)", inline=False)
-    embed.add_field(name="💰 950 Robux - 350K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225198806/350K-COINS)", inline=False)
-    embed.add_field(name="💰 1100 Robux - 400K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225774677/400K-COINS)", inline=False)
-    embed.add_field(name="💰 1260 Robux - 450K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225292700/450K-COINS)", inline=False)
-    embed.add_field(name="💰 1400 Robux - 500K Coins", value="[Comprar](https://www.roblox.com/es/game-pass/1225214961/500K-COINS)", inline=False)
+    # Lista de pases en formato (precio, monedas, enlace)
+    pases_info = [
+        (150, "50K", "https://www.roblox.com/es/game-pass/1225592623/50K-COINS"),
+        (280, "100K", "https://www.roblox.com/es/game-pass/1225786585/100K-COINS"),
+        (420, "150K", "https://www.roblox.com/es/game-pass/1225556629/150K-COINS"),
+        (560, "200K", "https://www.roblox.com/es/game-pass/1225360744/200K-COINS"),
+        (700, "250K", "https://www.roblox.com/es/game-pass/1225696591/250K-COINS"),
+        (800, "300K", "https://www.roblox.com/es/game-pass/1221862182/300K-COINS"),
+        (950, "350K", "https://www.roblox.com/es/game-pass/1225198806/350K-COINS"),
+        (1100, "400K", "https://www.roblox.com/es/game-pass/1225774677/400K-COINS"),
+        (1260, "450K", "https://www.roblox.com/es/game-pass/1225292700/450K-COINS"),
+        (1400, "500K", "https://www.roblox.com/es/game-pass/1225214961/500K-COINS"),
+    ]
 
-    embed.set_footer(text="Sistema de Ventas | Robux a Coins", icon_url=bot.user.display_avatar.url)
+    for precio, coins, enlace in pases_info:
+        nombre = f"💰 {precio} Robux - {coins} Coins"
+        valor = f"[🛒 Comprar Pase]({enlace})"
+        embed.add_field(name=nombre, value=valor, inline=False)
+
+    embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/2769/2769339.png")  # Un ícono decorativo
+    embed.set_footer(text="💳 Sistema de Ventas | Robux a Coins", icon_url=bot.user.display_avatar.url)
+
+    await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 @bot.tree.command(name="modificar_stock", description="⚙️ Modifica el stock de Robux")
