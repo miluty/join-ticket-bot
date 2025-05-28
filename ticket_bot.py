@@ -23,19 +23,33 @@ ticket_data = {}      # Para guardar datos de cada ticket
 # Asumiendo que defines el stock de Robux globalmente
 bot.robux_stock = 10000000 # Stock inicial, ajusta según necesites
 
+@bot.event
+async def on_ready():
+    await bot.wait_until_ready()
+    
+    # Cambiar estado
+    activity = discord.Activity(type=discord.ActivityType.watching, name="🎯 Managing Coinverse 💱")
+    await bot.change_presence(activity=activity)
+
+    try:
+        guild = discord.Object(id=1317658154397466715)  # Cambia por el ID de tu servidor
+        synced = await bot.tree.sync(guild=guild)  # Sincroniza SOLO para este servidor
+        print(f"✅ Comandos sincronizados correctamente en guild: {len(synced)}")
+    except Exception as e:
+        print(f"❌ Error al sincronizar comandos: {e}")
+        
+
 class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
     def __init__(self, tipo):
         super().__init__()
         self.tipo = tipo
 
-        if tipo == "fruit":
-            label_cantidad = "¿Cuánta 🍉 fruta quieres comprar?"
-        elif tipo == "coins":
-            label_cantidad = "¿Cuántas 💰 coins quieres comprar?"
-        elif tipo == "robux":
-            label_cantidad = "¿Cuántos 🎮 Robux quieres comprar?"
-        else:
-            label_cantidad = "Cantidad"
+        label_map = {
+            "fruit": "¿Cuánta 🍉 fruta quieres comprar?",
+            "coins": "¿Cuántas 💰 coins quieres comprar?",
+            "robux": "¿Cuántos 🎮 Robux quieres comprar?"
+        }
+        label_cantidad = label_map.get(tipo, "Cantidad")
 
         self.cantidad = discord.ui.TextInput(
             label=label_cantidad,
@@ -56,6 +70,7 @@ class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
         self.add_item(self.metodo_pago)
 
     async def on_submit(self, interaction: discord.Interaction):
+        # Validación específica para Robux
         if self.tipo == "robux":
             try:
                 cantidad_robux = int(self.cantidad.value)
@@ -69,6 +84,7 @@ class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
 
             bot.robux_stock -= cantidad_robux
 
+        # Crear ticket (canal privado)
         overwrites = {
             interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
             interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
@@ -76,7 +92,7 @@ class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
         }
 
         category = discord.utils.get(interaction.guild.categories, id=ticket_category_id)
-        channel_name = f"{self.tipo}-{interaction.user.name}".lower()
+        channel_name = f"{self.tipo}-{interaction.user.name}".lower().replace(" ", "-")
         channel = await interaction.guild.create_text_channel(
             name=channel_name,
             overwrites=overwrites,
@@ -115,7 +131,7 @@ class SaleModal(discord.ui.Modal, title="📦 Detalles de la Compra"):
         await channel.send(content=interaction.user.mention, embed=embed_ticket, view=claim_view)
         await interaction.response.send_message(f"✅ Ticket creado: {channel.mention}", ephemeral=True)
 
-# Vista para reclamar ticket
+
 class ClaimView(discord.ui.View):
     def __init__(self, channel):
         super().__init__(timeout=None)
@@ -133,11 +149,11 @@ class ClaimView(discord.ui.View):
             color=discord.Color.blue(),
             timestamp=datetime.datetime.utcnow()
         )
-        embed_reclamado.set_footer(text="Sistema de Tickets | Miluty", icon_url=bot.user.display_avatar.url)
+        embed_reclamado.set_footer(text="Sistema de Tickets |", icon_url=bot.user.display_avatar.url)
         await interaction.response.edit_message(embed=embed_reclamado, view=None)
         await self.channel.send(f"🛠️ {interaction.user.mention} ha reclamado este ticket.")
 
-# Vista para el panel de selección
+
 class PanelView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -153,21 +169,6 @@ class PanelView(discord.ui.View):
     async def select_callback(self, interaction: discord.Interaction):
         tipo = interaction.data['values'][0]
         await interaction.response.send_modal(SaleModal(tipo))
-@bot.event
-async def on_ready():
-    await bot.wait_until_ready()
-    
-    # Cambiar estado
-    activity = discord.Activity(type=discord.ActivityType.watching, name="🎯 Managing Coinverse 💱")
-    await bot.change_presence(activity=activity)
-
-    try:
-        guild = discord.Object(id=1317658154397466715)  # Cambia por el ID de tu servidor
-        synced = await bot.tree.sync(guild=guild)  # Sincroniza SOLO para este servidor
-        print(f"✅ Comandos sincronizados correctamente en guild: {len(synced)}")
-    except Exception as e:
-        print(f"❌ Error al sincronizar comandos: {e}")
-
 
 
 @bot.tree.command(name="panel", description="📩 Muestra el panel de tickets")
@@ -189,6 +190,7 @@ async def panel(interaction: discord.Interaction):
     )
     embed.set_footer(text="Sistema de Tickets |", icon_url=bot.user.display_avatar.url)
     await interaction.response.send_message(embed=embed, view=PanelView())
+
 
 @bot.tree.command(name="ventahecha", description="✅ Confirma la venta y cierra el ticket")
 async def ventahecha(interaction: discord.Interaction):
@@ -238,7 +240,7 @@ async def ventahecha(interaction: discord.Interaction):
             )
             embed.set_footer(text="Sistema de Ventas |", icon_url=bot.user.display_avatar.url)
             await vouch_channel.send(embed=embed)
-            await interaction_btn.response.send_message("✅ Venta confirmada. Cerrando ticket...", ephemeral=False)
+            await interaction_btn.response.send_message("✅ Venta confirmada. Cerrando ticket...")
             ticket_data.pop(interaction.channel.id, None)
             await interaction.channel.delete()
 
@@ -254,6 +256,7 @@ async def ventahecha(interaction: discord.Interaction):
         "📩 **Esperando confirmación del cliente...**\nPor favor confirma que recibiste tu producto.",
         view=ConfirmView()
     )
+
 
 @bot.tree.command(name="price", description="💰 Muestra la lista de precios de Coins y Robux / Shows Coins and Robux price list")
 async def price(interaction: discord.Interaction):
