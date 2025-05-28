@@ -103,6 +103,8 @@ class DataManager:
         key = f"{product}_stock"
         self.data[key] = max(0, self.data.get(key, 0) - amount)
         self.save()
+        
+data_manager = DataManager()
 
         
 class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
