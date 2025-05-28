@@ -487,6 +487,21 @@ async def pases(interaction: discord.Interaction):
     embed.set_footer(text="💳 Sistema de Ventas | Robux a Coins", icon_url=bot.user.display_avatar.url)
 
     await interaction.response.send_message(embed=embed, ephemeral=False)
+@bot.tree.command(name="rules", description="Muestra las reglas del servidor de ventas")
+async def rules(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="📜 Reglas del Servidor",
+        description="Asegúrate de leer y seguir estas normas para evitar sanciones.",
+        color=discord.Color.orange()
+    )
+    embed.add_field(name="1️⃣ No estafas", value="Cualquier intento de estafa resultará en un **ban permanente**.", inline=False)
+    embed.add_field(name="2️⃣ Respeta a los demás", value="Nada de insultos o discriminación.", inline=False)
+    embed.add_field(name="3️⃣ Prohibido SPAM", value="No hagas spam en canales o DMs de otros usuarios.", inline=False)
+    embed.add_field(name="4️⃣ Ventas legítimas", value="Solo se permite vender lo que esté aprobado por los administradores.", inline=False)
+    embed.add_field(name="5️⃣ Uso de tickets", value="Toda compra/venta debe hacerse por medio de los **tickets**.", inline=False)
+    embed.set_footer(text="El incumplimiento de estas reglas puede conllevar advertencias, bloqueos o expulsión.")
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 @bot.tree.command(name="r", description="💵 Muestra los precios de los Robux en inglés y español")
