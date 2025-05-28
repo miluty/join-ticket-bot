@@ -225,27 +225,6 @@ async def panel(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed, view=PanelView())
 
-
-@bot.tree.command(name="panel", description="📩 Muestra el panel de tickets")
-async def panel(interaction: discord.Interaction):
-    if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible aquí.", ephemeral=True)
-        return
-
-    embed = discord.Embed(
-        title="🎫 Sistema de Tickets de Venta",
-        description=(
-            "Bienvenido al sistema de tickets.\n\n"
-            "🛍️ Selecciona el producto que deseas comprar.\n"
-            "💳 Métodos aceptados: **PayPal, Robux y Gitcard**.\n\n"
-            "Presiona el menú desplegable para continuar."
-        ),
-        color=discord.Color.green(),
-        timestamp=datetime.datetime.utcnow()
-    )
-    embed.set_footer(text="Sistema de Tickets |", icon_url=bot.user.display_avatar.url)
-    await interaction.response.send_message(embed=embed, view=PanelView())
-
 @bot.tree.command(name="ventahecha", description="✅ Confirma la venta y cierra el ticket")
 async def ventahecha(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
