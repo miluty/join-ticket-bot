@@ -244,16 +244,18 @@ async def ventahecha(interaction: discord.Interaction):
     cantidad = datos.get("cantidad", "No especificada")
     metodo = datos.get("metodo", "No especificado")
 
+    # Extraer el ID del cliente desde el topic del canal
+    topic = interaction.channel.topic or ""
+    match = re.search(r"\((\d{17,})\)", topic)
+    cliente_id = int(match.group(1)) if match else None
+
     class ConfirmView(discord.ui.View):
         def __init__(self):
             super().__init__(timeout=120)
 
         @discord.ui.button(label="✅ Confirmar", style=discord.ButtonStyle.success, emoji="✔️")
         async def confirm(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
-            if str(interaction_btn.user.id) != interaction.channel.topic:
-                await interaction_btn.response.send_message("❌ Solo el cliente puede confirmar.", ephemeral=True)
-                return
-
+            # Permitir que cualquier persona en el ticket confirme
             vouch_channel = interaction.guild.get_channel(vouch_channel_id)
             if not vouch_channel:
                 await interaction_btn.response.send_message("❌ Canal de vouches no encontrado.", ephemeral=True)
@@ -263,7 +265,7 @@ async def ventahecha(interaction: discord.Interaction):
                 title="🧾 Vouch de Venta Completada",
                 description=(
                     f"👤 **Staff:** {interaction.user.mention}\n"
-                    f"🙋‍♂️ **Cliente:** {interaction_btn.user.mention}\n"
+                    f"🙋‍♂️ **Cliente:** <@{cliente_id}>\n"
                     f"📦 **Producto:** {producto}\n"
                     f"🔢 **Cantidad:** {cantidad}\n"
                     f"💳 **Método de Pago:** {metodo}"
@@ -271,24 +273,24 @@ async def ventahecha(interaction: discord.Interaction):
                 color=discord.Color.gold(),
                 timestamp=datetime.datetime.utcnow()
             )
-            embed.set_footer(text="Sistema de Ventas |", icon_url=bot.user.display_avatar.url)
+            embed.set_footer(text="Sistema de Ventas", icon_url=bot.user.display_avatar.url)
+
             await vouch_channel.send(embed=embed)
             await interaction_btn.response.send_message("✅ Venta confirmada. Cerrando ticket...", ephemeral=False)
+
             ticket_data.pop(interaction.channel.id, None)
             await interaction.channel.delete()
 
         @discord.ui.button(label="❌ Negar", style=discord.ButtonStyle.danger, emoji="✖️")
         async def deny(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
-            if str(interaction_btn.user.id) != interaction.channel.topic:
-                await interaction_btn.response.send_message("❌ Solo el cliente puede negar.", ephemeral=True)
-                return
             await interaction_btn.response.send_message("❌ Venta negada. El ticket sigue abierto.", ephemeral=True)
             self.stop()
 
     await interaction.response.send_message(
-        "📩 **Esperando confirmación del cliente...**\nPor favor confirma que recibiste tu producto.",
+        "📩 **Esperando confirmación...**\nCualquier miembro del ticket puede confirmar o negar la venta.",
         view=ConfirmView()
     )
+
 
 @bot.tree.command(name="price", description="💰 Muestra la lista de precios de Coins y Robux / Shows Coins and Robux price list")
 async def price(interaction: discord.Interaction):
