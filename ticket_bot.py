@@ -14,6 +14,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 server_configs = [1317658154397466715]  # IDs de servidores permitidos
 ticket_category_id = 1373499892886016081  # Categoría donde se crean tickets
 vouch_channel_id = 1317725063893614633  # Canal donde se envían los vouches
+ROLE_VERIFICADO_ID = 1317732832898060358
 tree = bot.tree
 
 claimed_tickets = {}  # Para saber qué ticket está reclamado
@@ -553,8 +554,29 @@ async def rules(interaction: discord.Interaction):
                 style=discord.ButtonStyle.link
             ))
 
-    await interaction.response.send_message(embed=embed, view=RulesView(), ephemeral=False)
+            self.add_item(AceptarButton())  # Botón adicional para aceptar reglas
 
+    class AceptarButton(Button):
+        def __init__(self):
+            super().__init__(label="✅ Acepto las Reglas / I Accept", style=discord.ButtonStyle.success, custom_id="aceptar_reglas")
+
+        async def callback(self, interaction_button: discord.Interaction):
+            role = interaction_button.guild.get_role(ROLE_VERIFICADO_ID)
+            if not role:
+                await interaction_button.response.send_message("❌ No se encontró el rol.", ephemeral=True)
+                return
+
+            if role in interaction_button.user.roles:
+                await interaction_button.response.send_message("✅ Ya tienes acceso. / You already accepted the rules.", ephemeral=True)
+                return
+
+            try:
+                await interaction_button.user.add_roles(role)
+                await interaction_button.response.send_message("🎉 ¡Has aceptado las reglas y se te ha dado acceso!", ephemeral=True)
+            except discord.Forbidden:
+                await interaction_button.response.send_message("❌ No tengo permisos para darte el rol.", ephemeral=True)
+
+    await interaction.response.send_message(embed=embed, view=RulesView(), ephemeral=False)
 @bot.tree.command(name="r", description="💵 Muestra los precios de los Robux en inglés y español")
 async def robux_prices(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
