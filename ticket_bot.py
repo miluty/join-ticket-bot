@@ -491,16 +491,10 @@ async def pases(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=False)
 @bot.tree.command(
     name="rules",
-    description="📜 Muestra las reglas y términos de servicio / Show rules and terms of service"
+    description="📜 Muestra las reglas y términos de servicio / Show rules and terms of service",
+    guild=guild
 )
 async def rules(interaction: discord.Interaction):
-    if interaction.guild_id not in server_configs:
-        await interaction.response.send_message(
-            "❌ Este comando no está disponible en este servidor. / This command is not available in this server.",
-            ephemeral=True
-        )
-        return
-
     embed = discord.Embed(
         title="📜 REGLAS & TÉRMINOS / RULES & TERMS",
         description=(
@@ -527,7 +521,6 @@ async def rules(interaction: discord.Interaction):
         color=discord.Color.orange(),
         timestamp=datetime.datetime.utcnow()
     )
-
     embed.set_footer(
         text="Sistema de Seguridad y Reglas / Rules & Safe System",
         icon_url=interaction.client.user.display_avatar.url
@@ -553,8 +546,7 @@ async def rules(interaction: discord.Interaction):
                 url=f"https://discord.com/channels/{guild_id}/1317724845055676527",
                 style=discord.ButtonStyle.link
             ))
-
-            self.add_item(AceptarButton())  # Botón adicional para aceptar reglas
+            self.add_item(AceptarButton())
 
     class AceptarButton(Button):
         def __init__(self):
@@ -575,6 +567,8 @@ async def rules(interaction: discord.Interaction):
                 await interaction_button.response.send_message("🎉 ¡Has aceptado las reglas y se te ha dado acceso!", ephemeral=True)
             except discord.Forbidden:
                 await interaction_button.response.send_message("❌ No tengo permisos para darte el rol.", ephemeral=True)
+
+    await interaction.response.send_message(embed=embed, view=RulesView(), ephemeral=False)
 
     await interaction.response.send_message(embed=embed, view=RulesView(), ephemeral=False)
 @bot.tree.command(name="r", description="💵 Muestra los precios de los Robux en inglés y español")
