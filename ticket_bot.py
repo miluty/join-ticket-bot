@@ -489,10 +489,12 @@ async def pases(interaction: discord.Interaction):
     embed.set_footer(text="💳 Sistema de Ventas | Robux a Coins", icon_url=bot.user.display_avatar.url)
 
     await interaction.response.send_message(embed=embed, ephemeral=False)
-@bot.tree.command(
+
+
+@tree.command(
     name="rules",
     description="📜 Muestra las reglas y términos de servicio / Show rules and terms of service",
-    guild=guild
+    guild=discord.Object(id=server_configs[0])
 )
 async def rules(interaction: discord.Interaction):
     embed = discord.Embed(
@@ -507,6 +509,8 @@ async def rules(interaction: discord.Interaction):
             "3️⃣ Abre un ticket para cualquier problema o consulta.\n"
             "4️⃣ Está prohibido hacer spam, insultar o faltar al respeto.\n"
             "5️⃣ Al pagar, aceptas automáticamente estos términos.\n\n"
+            "💬 **¿Dudas? Usa los botones de abajo.**\n"
+            "---\n"
             "🔒 **100% Safe Purchases**\n"
             "✅ Fast and verified transactions.\n"
             "✅ Professional system and responsive staff.\n\n"
@@ -516,15 +520,12 @@ async def rules(interaction: discord.Interaction):
             "3️⃣ Open a ticket for issues or questions.\n"
             "4️⃣ Spamming, insults or disrespect are not allowed.\n"
             "5️⃣ By paying, you agree to these terms.\n\n"
-            "📌 Presiona un botón abajo para navegar / Press a button below to navigate."
+            "📌 Presiona un botón abajo para navegar."
         ),
         color=discord.Color.orange(),
         timestamp=datetime.datetime.utcnow()
     )
-    embed.set_footer(
-        text="Sistema de Seguridad y Reglas / Rules & Safe System",
-        icon_url=interaction.client.user.display_avatar.url
-    )
+    embed.set_footer(text="Sistema de Seguridad y Reglas / Rules & Safe System", icon_url=interaction.client.user.display_avatar.url)
     embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")
 
     class RulesView(View):
@@ -546,31 +547,10 @@ async def rules(interaction: discord.Interaction):
                 url=f"https://discord.com/channels/{guild_id}/1317724845055676527",
                 style=discord.ButtonStyle.link
             ))
-            self.add_item(AceptarButton())
-
-    class AceptarButton(Button):
-        def __init__(self):
-            super().__init__(label="✅ Acepto las Reglas / I Accept", style=discord.ButtonStyle.success, custom_id="aceptar_reglas")
-
-        async def callback(self, interaction_button: discord.Interaction):
-            role = interaction_button.guild.get_role(ROLE_VERIFICADO_ID)
-            if not role:
-                await interaction_button.response.send_message("❌ No se encontró el rol.", ephemeral=True)
-                return
-
-            if role in interaction_button.user.roles:
-                await interaction_button.response.send_message("✅ Ya tienes acceso. / You already accepted the rules.", ephemeral=True)
-                return
-
-            try:
-                await interaction_button.user.add_roles(role)
-                await interaction_button.response.send_message("🎉 ¡Has aceptado las reglas y se te ha dado acceso!", ephemeral=True)
-            except discord.Forbidden:
-                await interaction_button.response.send_message("❌ No tengo permisos para darte el rol.", ephemeral=True)
 
     await interaction.response.send_message(embed=embed, view=RulesView(), ephemeral=False)
 
-    await interaction.response.send_message(embed=embed, view=RulesView(), ephemeral=False)
+
 @bot.tree.command(name="r", description="💵 Muestra los precios de los Robux en inglés y español")
 async def robux_prices(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
