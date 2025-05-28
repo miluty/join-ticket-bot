@@ -258,21 +258,22 @@ async def price(interaction: discord.Interaction):
         return
 
     embed = discord.Embed(
-        title="🎉 ¡Precios Increíbles! / Amazing Prices! 🎉",
+        title="💰 LISTA DE PRECIOS | PRICE LIST",
         description=(
-            "¿Listo para subir de nivel? Compra **Coins**, cuentas o servicios fácilmente.\n"
-            "Ready to level up? Buy **Coins**, accounts or services easily.\n\n"
-            "💡 *Cada 50,000 Coins → 140 Robux o $1 USD* / *Each 50,000 Coins → 140 Robux or $1 USD*\n"
-            "🚀 ¡Haz tu pedido y empieza la aventura! / Make your order and start the adventure!"
+            "✨ ¡Consigue monedas, cuentas y servicios exclusivos!\n"
+            "✨ Get coins, accounts, and exclusive services!\n\n"
+            "🔹 *Cada 50,000 Coins → 140 Robux o $1 USD*\n"
+            "🔹 *Each 50,000 Coins → 140 Robux or $1 USD*\n"
+            "📦 Haz tu pedido ahora y mejora tu experiencia.\n"
+            "📦 Order now and level up your game!"
         ),
-        color=0xE91E63,
+        color=discord.Color.gold(),
         timestamp=datetime.datetime.utcnow()
     )
 
     embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")
-    embed.set_author(name="💎 Sistema de Precios / Price System", icon_url="https://i.imgur.com/3i1S0cL.png")
+    embed.set_author(name="📊 Sistema de Precios / Price System", icon_url="https://i.imgur.com/3i1S0cL.png")
 
-    # Lista de precios de Coins
     prices = [
         (50_000, 140, 1),
         (100_000, 280, 2),
@@ -288,27 +289,38 @@ async def price(interaction: discord.Interaction):
 
     for coins, robux, usd in prices:
         embed.add_field(
-            name=f"🍀 {coins:,} Coins",
-            value=f"💜 {robux} Robux\n💵 ${usd}.00 USD",
+            name=f"💎 {coins:,} Coins",
+            value=f"💸 {robux} Robux\n💵 ${usd}.00 USD",
             inline=True,
         )
 
-    # Nuevos productos y servicios
+    embed.add_field(name="━━━━━━━━━━━━━━━━━━━━", value="**📦 Servicios Extra / Extra Services**", inline=False)
+
     embed.add_field(
         name="🧠 Max Account Mojo",
         value="💵 $5.00 USD\n📩 Abre un ticket para comprar.\n📩 Open a ticket to buy.",
-        inline=False,
+        inline=True,
     )
 
     embed.add_field(
         name="🍍 Farm de Fruta / Fruit Farm",
         value="📩 Abre un ticket para conocer precios y disponibilidad.\n📩 Open a ticket to check prices and availability.",
-        inline=False,
+        inline=True,
     )
 
-    embed.set_footer(text="✨ ¡Gracias por elegirnos! / Thanks for choosing us! ✨", icon_url=bot.user.display_avatar.url)
+    embed.set_footer(text="✨ ¡Gracias por elegirnos! / Thanks for choosing us!", icon_url=bot.user.display_avatar.url)
 
-    await interaction.response.send_message(embed=embed)
+    # Botón para ir al canal
+    class GoToChannelView(View):
+        def __init__(self):
+            super().__init__(timeout=None)
+            self.add_item(Button(
+                label="📨 Ir al canal de pedidos",
+                url="https://discord.com/channels/{}/{}/".format(interaction.guild_id, 1373527079382941817),
+                style=discord.ButtonStyle.link
+            ))
+
+    await interaction.response.send_message(embed=embed, view=GoToChannelView())
 
 
 
@@ -523,39 +535,6 @@ async def robux_prices(interaction: discord.Interaction):
     )
     embed.set_footer(text="Robux Info | Miluty", icon_url=bot.user.display_avatar.url)
     await interaction.response.send_message(embed=embed)
-@bot.tree.command(name="poll", description="📊 Crea una encuesta de enfrentamiento / Create a versus poll")
-@app_commands.describe(
-    quien1="Primer contrincante / First contestant",
-    quien2="Segundo contrincante / Second contestant",
-    duracion="Duración en minutos (solo informativa) / Duration in minutes (informative only)"
-)
-async def poll(
-    interaction: discord.Interaction,
-    quien1: str,
-    quien2: str,
-    duracion: int
-):
-    if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible en este servidor. / Command not available in this server.", ephemeral=True)
-        return
-
-    embed = discord.Embed(
-        title="⚔️ ¿Quién ganará? / Who Will Win?",
-        description=(
-            f"**1️⃣ {quien1}**\n"
-            f"**2️⃣ {quien2}**\n\n"
-            f"⏳ **Duración / Duration:** {duracion} minutos"
-        ),
-        color=discord.Color.purple(),
-        timestamp=datetime.datetime.utcnow()
-    )
-    embed.set_footer(text="Sistema de Encuestas | Poll System", icon_url=bot.user.display_avatar.url)
-
-    await interaction.response.send_message("✅ Encuesta creada correctamente. / Poll created successfully.", ephemeral=True)
-
-    message = await interaction.followup.send(embed=embed)
-    await message.add_reaction("1️⃣")
-    await message.add_reaction("2️⃣")
 
 @bot.tree.command(name="g", description="🔗 Muestra el grupo de Roblox para la compra de Robux")
 async def grupo_roblox(interaction: discord.Interaction):
