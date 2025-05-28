@@ -249,17 +249,19 @@ async def ventahecha(interaction: discord.Interaction):
     metodo = datos.get("metodo", "Not specified / No especificado")
 
     class ConfirmView(discord.ui.View):
-        def __init__(self):
+        def __init__(self, command_user_id):
             super().__init__(timeout=120)
+            self.command_user_id = command_user_id  # guardamos el que ejecutó el comando /ventahecha
 
         @discord.ui.button(label="✅ Confirm / Confirmar", style=discord.ButtonStyle.success, emoji="✔️")
         async def confirm(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
-            if str(interaction_btn.user.id) != interaction.channel.topic:
+            # Permitir al cliente (channel.topic) o al que ejecutó el comando (command_user_id)
+            if str(interaction_btn.user.id) != interaction_btn.channel.topic and interaction_btn.user.id != self.command_user_id:
                 await interaction_btn.response.send_message(
-                    "❌ Only the client can confirm. / Solo el cliente puede confirmar.", ephemeral=True)
+                    "❌ Only the client or command issuer can confirm. / Solo el cliente o quien ejecutó el comando puede confirmar.", ephemeral=True)
                 return
 
-            vouch_channel = interaction.guild.get_channel(vouch_channel_id)
+            vouch_channel = interaction_btn.guild.get_channel(vouch_channel_id)
             if not vouch_channel:
                 await interaction_btn.response.send_message(
                     "❌ Vouch channel not found. / Canal de vouches no encontrado.", ephemeral=True)
@@ -268,8 +270,8 @@ async def ventahecha(interaction: discord.Interaction):
             embed = discord.Embed(
                 title="🧾 Sale Completed Vouch / Vouch de Venta Completada",
                 description=(
-                    f"👤 **Staff:** {interaction.user.mention}\n"
-                    f"🙋‍♂️ **Client / Cliente:** {interaction_btn.user.mention}\n"
+                    f"👤 **Staff:** {interaction_btn.user.mention}\n"
+                    f"🙋‍♂️ **Client / Cliente:** <@{interaction_btn.channel.topic}>\n"
                     f"📦 **Product / Producto:** {producto}\n"
                     f"🔢 **Quantity / Cantidad:** {cantidad}\n"
                     f"💳 **Payment Method / Método de Pago:** {metodo}"
@@ -283,14 +285,14 @@ async def ventahecha(interaction: discord.Interaction):
             await interaction_btn.response.send_message(
                 "✅ Sale confirmed. Closing the ticket... / Venta confirmada. Cerrando ticket...", ephemeral=False)
 
-            ticket_data.pop(interaction.channel.id, None)
-            await interaction.channel.delete()
+            ticket_data.pop(interaction_btn.channel.id, None)
+            await interaction_btn.channel.delete()
 
         @discord.ui.button(label="❌ Deny / Negar", style=discord.ButtonStyle.danger, emoji="✖️")
         async def deny(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
-            if str(interaction_btn.user.id) != interaction.channel.topic:
+            if str(interaction_btn.user.id) != interaction_btn.channel.topic and interaction_btn.user.id != self.command_user_id:
                 await interaction_btn.response.send_message(
-                    "❌ Only the client can deny. / Solo el cliente puede negar.", ephemeral=True)
+                    "❌ Only the client or command issuer can deny. / Solo el cliente o quien ejecutó el comando puede negar.", ephemeral=True)
                 return
             await interaction_btn.response.send_message(
                 "❌ Sale denied. The ticket remains open. / Venta negada. El ticket sigue abierto.", ephemeral=True)
@@ -299,8 +301,9 @@ async def ventahecha(interaction: discord.Interaction):
     await interaction.response.send_message(
         "📩 **Waiting for client confirmation...**\nPlease confirm that you received your product.\n\n"
         "📩 **Esperando confirmación del cliente...**\nPor favor confirma que recibiste tu producto.",
-        view=ConfirmView()
+        view=ConfirmView(interaction.user.id)
     )
+
 
 
 
