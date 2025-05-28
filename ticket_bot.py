@@ -1,4 +1,5 @@
 import os
+import json
 import discord
 import datetime
 import asyncio
@@ -10,6 +11,7 @@ from discord.ext import commands
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
+DATA_FILE = "data.json"
 
 # Configuración - cambia estos IDs por los tuyos
 server_configs = [1317658154397466715]  # IDs de servidores permitidos
@@ -22,6 +24,70 @@ claimed_tickets = {}  # Para saber qué ticket está reclamado
 ticket_data = {}      # Para guardar datos de cada ticket
 # Asumiendo que defines el stock de Robux globalmente
 bot.robux_stock = 10000000 # Stock inicial, ajusta según necesites
+class DataManager:
+    def __init__(self):
+        self.data = {
+            "ticket_data": {},        # channel_id: {producto, cantidad, metodo, cliente_id}
+            "claimed_tickets": {},    # channel_id: user_id staff
+            "user_purchases": {},     # user_id: total_compras
+            "roles_assigned": {},     # user_id: rol_asignado
+            "robux_stock": 10000,
+            "coins_stock": 5000,
+            "fruit_stock": 3000
+        }
+        self.load()
+
+    def load(self):
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE, "r") as f:
+                self.data = json.load(f)
+
+    def save(self):
+        with open(DATA_FILE, "w") as f:
+            json.dump(self.data, f, indent=4)
+
+    # Métodos para manejar tickets
+    def get_ticket(self, channel_id):
+        return self.data["ticket_data"].get(str(channel_id))
+
+    def set_ticket(self, channel_id, info):
+        self.data["ticket_data"][str(channel_id)] = info
+        self.save()
+
+    def remove_ticket(self, channel_id):
+        self.data["ticket_data"].pop(str(channel_id), None)
+        self.save()
+
+    # Métodos para tickets reclamados
+    def get_claimed(self, channel_id):
+        return self.data["claimed_tickets"].get(str(channel_id))
+
+    def set_claimed(self, channel_id, user_id):
+        self.data["claimed_tickets"][str(channel_id)] = str(user_id)
+        self.save()
+
+    def remove_claimed(self, channel_id):
+        self.data["claimed_tickets"].pop(str(channel_id), None)
+        self.save()
+
+    # Compras por usuario
+    def get_user_purchases(self, user_id):
+        return self.data["user_purchases"].get(str(user_id), 0)
+
+    def add_user_purchase(self, user_id, amount):
+        user_id_str = str(user_id)
+        current = self.data["user_purchases"].get(user_id_str, 0)
+        self.data["user_purchases"][user_id_str] = current + amount
+        self.save()
+
+    # Stock
+    def get_stock(self, product):
+        return self.data.get(f"{product}_stock", 0)
+
+    def reduce_stock(self, product, amount):
+        key = f"{product}_stock"
+        self.data[key] = max(0, self.data.get(key, 0) - amount)
+        self.save()
 
 @bot.event
 async def on_ready():
@@ -38,13 +104,12 @@ async def on_ready():
     except Exception as e:
         print(f"❌ Error al sincronizar comandos: {e}")
         
-
 class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
-    def __init__(self, tipo):
+    def __init__(self, tipo, data_manager: DataManager):
         super().__init__()
         self.tipo = tipo
+        self.data_manager = data_manager
 
-        # Etiqueta según el tipo
         label_cantidad = {
             "fruit": "🍉 ¿Cuánta fruta quieres? / How many fruits?",
             "coins": "💰 ¿Cuántas coins quieres? / How many coins?",
@@ -70,25 +135,28 @@ class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
         self.add_item(self.metodo_pago)
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Validación si es robux
-        if self.tipo == "robux":
-            try:
-                cantidad_robux = int(self.cantidad.value)
-            except ValueError:
-                await interaction.response.send_message(
-                    "❌ La cantidad debe ser un número válido. / The amount must be a valid number.",
-                    ephemeral=True
-                )
-                return
+        # Validar cantidad y stock
+        try:
+            cantidad_int = int(self.cantidad.value)
+            if cantidad_int <= 0:
+                raise ValueError
+        except ValueError:
+            await interaction.response.send_message(
+                "❌ La cantidad debe ser un número positivo válido. / The amount must be a valid positive number.",
+                ephemeral=True
+            )
+            return
 
-            if cantidad_robux > bot.robux_stock:
-                await interaction.response.send_message(
-                    f"❌ No hay suficiente stock. / Not enough stock.\n📉 Disponible / Available: `{bot.robux_stock}`",
-                    ephemeral=True
-                )
-                return
+        stock_actual = self.data_manager.get_stock(self.tipo)
+        if cantidad_int > stock_actual:
+            await interaction.response.send_message(
+                f"❌ No hay suficiente stock. / Not enough stock.\n📉 Disponible / Available: `{stock_actual}`",
+                ephemeral=True
+            )
+            return
 
-            bot.robux_stock -= cantidad_robux
+        # Reducir stock
+        self.data_manager.reduce_stock(self.tipo, cantidad_int)
 
         # Crear canal del ticket
         overwrites = {
@@ -113,13 +181,16 @@ class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
             "robux": "🎮 Robux"
         }.get(self.tipo, "❓ Desconocido / Unknown")
 
-        ticket_data[channel.id] = {
+        # Guardar datos del ticket
+        self.data_manager.set_ticket(channel.id, {
             "producto": producto_nombre,
             "cantidad": self.cantidad.value,
-            "metodo": self.metodo_pago.value
-        }
+            "metodo": self.metodo_pago.value,
+            "cliente_id": str(interaction.user.id)
+        })
 
-        claim_view = ClaimView(channel)
+        # Vista para reclamar ticket
+        claim_view = ClaimView(channel, self.data_manager)
 
         embed_ticket = discord.Embed(
             title="🎟️ Nuevo Ticket de Compra / New Purchase Ticket",
@@ -128,7 +199,7 @@ class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
                 f"📦 **Producto / Product:** {producto_nombre}\n"
                 f"🔢 **Cantidad / Amount:** `{self.cantidad.value}`\n"
                 f"💳 **Pago / Payment:** `{self.metodo_pago.value}`\n"
-                + (f"📉 **Stock Restante / Remaining Stock:** `{bot.robux_stock}`" if self.tipo == "robux" else "")
+                + (f"📉 **Stock Restante / Remaining Stock:** `{self.data_manager.get_stock(self.tipo)}`" if self.tipo == "robux" else "")
             ),
             color=discord.Color.orange(),
             timestamp=datetime.datetime.utcnow()
@@ -138,22 +209,24 @@ class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
         await channel.send(content=interaction.user.mention, embed=embed_ticket, view=claim_view)
         await interaction.response.send_message(f"✅ Ticket creado: {channel.mention} / Ticket created", ephemeral=True)
 
+
+
 class ClaimView(discord.ui.View):
-    def __init__(self, channel):
+    def __init__(self, channel, data_manager: DataManager):
         super().__init__(timeout=None)
         self.channel = channel
+        self.data_manager = data_manager
 
     @discord.ui.button(label="🎟️ Reclamar Ticket / Claim Ticket", style=discord.ButtonStyle.primary, emoji="🛠️")
     async def claim_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Verificar si ya está reclamado
-        if self.channel.id in claimed_tickets:
+        if self.data_manager.get_claimed(self.channel.id):
             await interaction.response.send_message(
                 "❌ Este ticket ya fue reclamado. / This ticket is already claimed.",
                 ephemeral=True
             )
             return
 
-        claimed_tickets[self.channel.id] = interaction.user.id
+        self.data_manager.set_claimed(self.channel.id, interaction.user.id)
 
         embed_reclamado = discord.Embed(
             title="🔧 Ticket Reclamado / Ticket Claimed",
@@ -166,10 +239,10 @@ class ClaimView(discord.ui.View):
         await interaction.response.edit_message(embed=embed_reclamado, view=None)
         await self.channel.send(f"🔧 {interaction.user.mention} ha reclamado este ticket. / has claimed this ticket.")
 
-
 class PanelView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, data_manager: DataManager):
         super().__init__(timeout=None)
+        self.data_manager = data_manager
         options = [
             discord.SelectOption(
                 label="🍉 Comprar Fruta / Buy Fruit",
@@ -196,8 +269,7 @@ class PanelView(discord.ui.View):
 
     async def select_callback(self, interaction: discord.Interaction):
         tipo = interaction.data['values'][0]
-        await interaction.response.send_modal(SaleModal(tipo))
-
+        await interaction.response.send_modal(SaleModal(tipo, self.data_manager))
 
 
 @bot.tree.command(name="panel", description="📩 Muestra el panel de tickets / Show the ticket panel")
@@ -220,8 +292,7 @@ async def panel(interaction: discord.Interaction):
     )
     embed.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
 
-    await interaction.response.send_message(embed=embed, view=PanelView())
-
+    await interaction.response.send_message(embed=embed, view=PanelView(data_manager))
 
 @bot.tree.command(name="ventahecha", description="✅ Confirma la venta y cierra el ticket / Confirm sale and close ticket")
 async def ventahecha(interaction: discord.Interaction):
@@ -233,7 +304,7 @@ async def ventahecha(interaction: discord.Interaction):
         await interaction.response.send_message("❌ Solo se puede usar en tickets de venta. / Only usable in sale tickets.", ephemeral=True)
         return
 
-    datos = ticket_data.get(interaction.channel.id)
+    datos = data_manager.get_ticket(interaction.channel.id)
     if not datos:
         await interaction.response.send_message("❌ No se encontraron datos del ticket. / Ticket data not found.", ephemeral=True)
         return
@@ -241,6 +312,7 @@ async def ventahecha(interaction: discord.Interaction):
     producto = datos.get("producto", "No especificado / Not specified")
     cantidad = datos.get("cantidad", "No especificada / Not specified")
     metodo = datos.get("metodo", "No especificado / Not specified")
+    cliente_id = datos.get("cliente_id")
 
     class ConfirmView(discord.ui.View):
         def __init__(self):
@@ -248,7 +320,7 @@ async def ventahecha(interaction: discord.Interaction):
 
         @discord.ui.button(label="✅ Confirmar / Confirm", style=discord.ButtonStyle.success, emoji="✔️")
         async def confirm(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
-            if str(interaction_btn.user.id) != interaction.channel.topic:
+            if str(interaction_btn.user.id) != cliente_id:
                 await interaction_btn.response.send_message("❌ Solo el cliente puede confirmar. / Only the client can confirm.", ephemeral=True)
                 return
 
@@ -274,13 +346,16 @@ async def ventahecha(interaction: discord.Interaction):
             mensaje = await vouch_channel.send(embed=embed)
             await mensaje.add_reaction("❤️")
 
+            # Guardar historial de venta en data_manager
+            data_manager.add_sale(str(interaction_btn.user.id), producto, int(cantidad))
+
             await interaction_btn.response.send_message("✅ Venta confirmada. Cerrando ticket... / Sale confirmed. Closing ticket...", ephemeral=False)
-            ticket_data.pop(interaction.channel.id, None)
+            data_manager.remove_ticket(interaction.channel.id)
             await interaction.channel.delete()
 
         @discord.ui.button(label="❌ Negar / Deny", style=discord.ButtonStyle.danger, emoji="✖️")
         async def deny(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
-            if str(interaction_btn.user.id) != interaction.channel.topic:
+            if str(interaction_btn.user.id) != cliente_id:
                 await interaction_btn.response.send_message("❌ Solo el cliente puede negar. / Only the client can deny.", ephemeral=True)
                 return
             await interaction_btn.response.send_message("❌ Venta negada. El ticket sigue abierto. / Sale denied. Ticket remains open.", ephemeral=True)
@@ -292,6 +367,44 @@ async def ventahecha(interaction: discord.Interaction):
         "Please confirm that you received your product.",
         view=ConfirmView()
     )
+
+@bot.tree.command(name="cancelarventa", description="❌ Cancela el ticket de venta actual / Cancel current sale ticket")
+async def cancelarventa(interaction: discord.Interaction):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
+        return
+
+    if not interaction.channel.name.startswith(("fruit", "coins", "robux")):
+        await interaction.response.send_message("❌ Este comando solo funciona dentro de tickets de venta. / This command only works inside sale tickets.", ephemeral=True)
+        return
+
+    datos = ticket_data.get(interaction.channel.id)
+    if not datos:
+        await interaction.response.send_message("❌ No se encontraron datos del ticket. / No ticket data found.", ephemeral=True)
+        return
+
+    producto = datos.get("producto", "No especificado / Not specified")
+    cantidad = datos.get("cantidad", "No especificada / Not specified")
+    tipo = None
+    if producto == "🎮 Robux": tipo = "robux"
+    elif producto == "💰 Coins": tipo = "coins"
+    elif producto == "🍉 Fruta": tipo = "fruit"
+
+    # Devolver stock si es robux
+    if tipo == "robux":
+        try:
+            cantidad_num = int(cantidad)
+            bot.robux_stock += cantidad_num
+        except:
+            pass
+
+    ticket_data.pop(interaction.channel.id, None)
+    await interaction.response.send_message(
+        f"❌ Ticket de venta cancelado y cerrado.\nProducto: {producto}\nCantidad: {cantidad}\n/ Sale ticket cancelled and closed.\nProduct: {producto}\nAmount: {cantidad}",
+        ephemeral=False
+    )
+    await interaction.channel.delete()
+
 
 
 @bot.tree.command(name="price", description="💰 Muestra la lista de precios de Coins y Robux / Shows Coins and Robux price list")
