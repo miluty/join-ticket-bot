@@ -27,16 +27,23 @@ class SaleModal(discord.ui.Modal, title="📦 Purchase Details / Detalles de la 
         super().__init__()
         self.tipo = tipo
 
-        labels = {
-            "fruit": "How many 🍉 fruits do you want to buy? / ¿Cuánta fruta quieres comprar?",
-            "coins": "How many 💰 coins do you want to buy? / ¿Cuántas coins quieres comprar?",
-            "robux": "How many 🎮 Robux do you want to buy? / ¿Cuántos Robux quieres comprar?"
-        }
-        label_cantidad = labels.get(tipo, "Quantity / Cantidad")
+        # Etiquetas cortas para label (máximo 45 caracteres)
+        if tipo == "fruit":
+            label_cantidad = "Cantidad de fruta / Fruit qty"
+            placeholder_cantidad = "Ej: 1, 10, 100... / e.g. 1, 10, 100..."
+        elif tipo == "coins":
+            label_cantidad = "Cantidad de coins / Coins qty"
+            placeholder_cantidad = "Ej: 1, 10, 100... / e.g. 1, 10, 100..."
+        elif tipo == "robux":
+            label_cantidad = "Cantidad de Robux / Robux qty"
+            placeholder_cantidad = "Ej: 1, 10, 100... / e.g. 1, 10, 100..."
+        else:
+            label_cantidad = "Cantidad / Quantity"
+            placeholder_cantidad = "Ej: 1, 10, 100... / e.g. 1, 10, 100..."
 
         self.cantidad = discord.ui.TextInput(
             label=label_cantidad,
-            placeholder="E.g.: 1, 10, 100... / Ej: 1, 10, 100...",
+            placeholder=placeholder_cantidad,
             required=True,
             style=discord.TextStyle.short,
             max_length=10,
@@ -44,14 +51,14 @@ class SaleModal(discord.ui.Modal, title="📦 Purchase Details / Detalles de la 
         self.add_item(self.cantidad)
 
         self.metodo_pago = discord.ui.TextInput(
-            label="Payment Method (PayPal, Robux, Gitcard...) 💳 / Método de Pago (PayPal, Robux, Gitcard...)",
-            placeholder="E.g.: PayPal / Ej: PayPal",
+            label="Método de pago / Payment method",
+            placeholder="Ej: PayPal, Robux, Gitcard... / e.g. PayPal",
             required=True,
             style=discord.TextStyle.short,
             max_length=20,
         )
         self.add_item(self.metodo_pago)
-
+        
     async def on_submit(self, interaction: discord.Interaction):
         # Validate numeric input and stock only for Robux
         if self.tipo == "robux":
