@@ -251,12 +251,17 @@ async def ventahecha(interaction: discord.Interaction):
     class ConfirmView(discord.ui.View):
         def __init__(self, command_user_id):
             super().__init__(timeout=120)
-            self.command_user_id = command_user_id  # guardamos el que ejecutó el comando /ventahecha
+            self.command_user_id = command_user_id  # guardamos el que ejecutó el comando
 
         @discord.ui.button(label="✅ Confirm / Confirmar", style=discord.ButtonStyle.success, emoji="✔️")
         async def confirm(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
             # Permitir al cliente (channel.topic) o al que ejecutó el comando (command_user_id)
-            if str(interaction_btn.user.id) != interaction_btn.channel.topic and interaction_btn.user.id != self.command_user_id:
+            topic = interaction_btn.channel.topic or ""
+            # Extraer ID del topic si está dentro de paréntesis
+            match = re.search(r"\((\d{17,19})\)", topic)
+            client_id = match.group(1) if match else topic
+
+            if str(interaction_btn.user.id) != client_id and interaction_btn.user.id != self.command_user_id:
                 await interaction_btn.response.send_message(
                     "❌ Only the client or command issuer can confirm. / Solo el cliente o quien ejecutó el comando puede confirmar.", ephemeral=True)
                 return
@@ -271,7 +276,7 @@ async def ventahecha(interaction: discord.Interaction):
                 title="🧾 Sale Completed Vouch / Vouch de Venta Completada",
                 description=(
                     f"👤 **Staff:** {interaction_btn.user.mention}\n"
-                    f"🙋‍♂️ **Client / Cliente:** <@{interaction_btn.channel.topic}>\n"
+                    f"🙋‍♂️ **Client / Cliente:** <@{client_id}>\n"
                     f"📦 **Product / Producto:** {producto}\n"
                     f"🔢 **Quantity / Cantidad:** {cantidad}\n"
                     f"💳 **Payment Method / Método de Pago:** {metodo}"
@@ -290,7 +295,11 @@ async def ventahecha(interaction: discord.Interaction):
 
         @discord.ui.button(label="❌ Deny / Negar", style=discord.ButtonStyle.danger, emoji="✖️")
         async def deny(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
-            if str(interaction_btn.user.id) != interaction_btn.channel.topic and interaction_btn.user.id != self.command_user_id:
+            topic = interaction_btn.channel.topic or ""
+            match = re.search(r"\((\d{17,19})\)", topic)
+            client_id = match.group(1) if match else topic
+
+            if str(interaction_btn.user.id) != client_id and interaction_btn.user.id != self.command_user_id:
                 await interaction_btn.response.send_message(
                     "❌ Only the client or command issuer can deny. / Solo el cliente o quien ejecutó el comando puede negar.", ephemeral=True)
                 return
@@ -303,8 +312,6 @@ async def ventahecha(interaction: discord.Interaction):
         "📩 **Esperando confirmación del cliente...**\nPor favor confirma que recibiste tu producto.",
         view=ConfirmView(interaction.user.id)
     )
-
-
 
 
 @bot.tree.command(name="price", description="💰 Muestra la lista de precios de Coins y Robux / Shows Coins and Robux price list")
