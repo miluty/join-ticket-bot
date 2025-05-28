@@ -551,7 +551,13 @@ async def grupo_roblox(interaction: discord.Interaction):
     await interaction.response.send_message(mensaje)
 @bot.tree.command(name="rules", description="📜 Muestra las reglas y términos de servicio / Show rules and terms of service")
 async def rules(interaction: discord.Interaction):
-    # Embed con las reglas y condiciones
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message(
+            "❌ Este comando no está disponible en este servidor. / This command is not available in this server.",
+            ephemeral=True
+        )
+        return
+
     embed = discord.Embed(
         title="📜 REGLAS & TÉRMINOS / RULES & TERMS",
         description=(
@@ -583,27 +589,24 @@ async def rules(interaction: discord.Interaction):
     embed.set_footer(text="Sistema de Seguridad y Reglas / Rules & Safe System", icon_url=bot.user.display_avatar.url)
     embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")
 
-    # Vista con botones
     class RulesView(View):
         def __init__(self):
             super().__init__(timeout=None)
+            guild_id = interaction.guild_id
             self.add_item(Button(
                 label="🎟️ Crear Ticket / Create Ticket",
-                url="https://discord.com/channels/{}/{}/".format(interaction.guild_id, 1373527079382941817),
+                url=f"https://discord.com/channels/{guild_id}/1373527079382941817",
                 style=discord.ButtonStyle.link
             ))
             self.add_item(Button(
                 label="📩 Dejar Vouch / Leave Vouch",
-                url="https://discord.com/channels/{}/{}/".format(interaction.guild_id, 1373533364526780427),
+                url=f"https://discord.com/channels/{guild_id}/1373533364526780427",
                 style=discord.ButtonStyle.link
             ))
             self.add_item(Button(
                 label="💰 Ver Precios / View Prices",
-                url="https://discord.com/channels/{}/{}/".format(interaction.guild_id, 1317724845055676527),
+                url=f"https://discord.com/channels/{guild_id}/1317724845055676527",
                 style=discord.ButtonStyle.link
             ))
 
-    # Enviar el mensaje sin mostrar quién lo ejecutó
     await interaction.response.send_message(embed=embed, view=RulesView(), ephemeral=False)
-
-
