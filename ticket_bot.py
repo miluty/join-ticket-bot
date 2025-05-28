@@ -518,7 +518,7 @@ async def rules(interaction: discord.Interaction):
             "3️⃣ Open a ticket for issues or questions.\n"
             "4️⃣ Spamming, insults or disrespect are not allowed.\n"
             "5️⃣ By paying, you agree to these terms.\n\n"
-            "📌 Press a button below to navigate."
+            "📌 Presiona un botón abajo para navegar."
         ),
         color=discord.Color.orange(),
         timestamp=datetime.datetime.utcnow()
@@ -549,33 +549,6 @@ async def rules(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed, view=RulesView(), ephemeral=False)
     
-@bot.tree.command(name="modificar_stock", description="⚙️ Modifica el stock de Robux")
-@discord.app_commands.checks.has_permissions(administrator=True)
-@app_commands.describe(cantidad="Número positivo o negativo para modificar el stock")
-async def modificar_stock(interaction: discord.Interaction, cantidad: int):
-    if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible en este servidor.", ephemeral=True)
-        return
-
-    global robux_stock
-    if 'robux_stock' not in globals():
-        robux_stock = 0
-
-    robux_stock += cantidad
-
-    if robux_stock < 0:
-        robux_stock = 0
-        await interaction.response.send_message("⚠️ El stock no puede ser negativo. Se ajustó a 0.", ephemeral=True)
-        return
-
-    await interaction.response.send_message(f"✅ El stock de Robux ha sido actualizado a {robux_stock}", ephemeral=True)
-
-@modificar_stock.error
-async def modificar_stock_error(interaction: discord.Interaction, error):
-    if isinstance(error, discord.app_commands.errors.MissingPermissions):
-        await interaction.response.send_message("❌ No tienes permiso para usar este comando.", ephemeral=True)
-    else:
-        await interaction.response.send_message("❌ Ocurrió un error al ejecutar el comando.", ephemeral=True)
 
 @bot.tree.command(name="r", description="💵 Muestra los precios de los Robux en inglés y español")
 async def robux_prices(interaction: discord.Interaction):
