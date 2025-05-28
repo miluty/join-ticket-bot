@@ -155,15 +155,17 @@ class PanelView(discord.ui.View):
 async def on_ready():
     await bot.wait_until_ready()
     
-    # Estado personalizado: Watching 🎯 Managing Coinverse 💱
+    # Cambiar estado
     activity = discord.Activity(type=discord.ActivityType.watching, name="🎯 Managing Coinverse 💱")
     await bot.change_presence(activity=activity)
 
     try:
-        synced = await bot.tree.sync()
-        print(f"✅ Comandos sincronizados correctamente: {len(synced)}")
+        guild = discord.Object(id=1317658154397466715)  # Cambia por el ID de tu servidor
+        synced = await bot.tree.sync(guild=guild)  # Sincroniza SOLO para este servidor
+        print(f"✅ Comandos sincronizados correctamente en guild: {len(synced)}")
     except Exception as e:
         print(f"❌ Error al sincronizar comandos: {e}")
+
 
 
 @bot.tree.command(name="panel", description="📩 Muestra el panel de tickets")
