@@ -488,25 +488,72 @@ async def pases(interaction: discord.Interaction):
     embed.set_footer(text="💳 Sistema de Ventas | Robux a Coins", icon_url=bot.user.display_avatar.url)
 
     await interaction.response.send_message(embed=embed, ephemeral=False)
-@tree.command(
+@bot.tree.command(
     name="rules",
-    description="📜 Muestra las reglas del servidor de ventas",
-    guild=discord.Object(id=server_configs[0])  # Usa el primer ID de tu lista
+    description="📜 Muestra las reglas y términos de servicio / Show rules and terms of service"
 )
 async def rules(interaction: discord.Interaction):
-    embed = discord.Embed(
-        title="📜 Reglas del Servidor",
-        description="Asegúrate de leer y seguir estas normas para evitar sanciones.",
-        color=discord.Color.orange()
-    )
-    embed.add_field(name="1️⃣ No estafas", value="Cualquier intento de estafa resultará en un **ban permanente**.", inline=False)
-    embed.add_field(name="2️⃣ Respeta a los demás", value="Nada de insultos o discriminación.", inline=False)
-    embed.add_field(name="3️⃣ Prohibido SPAM", value="No hagas spam en canales o DMs de otros usuarios.", inline=False)
-    embed.add_field(name="4️⃣ Ventas legítimas", value="Solo se permite vender lo que esté aprobado por los administradores.", inline=False)
-    embed.add_field(name="5️⃣ Uso de tickets", value="Toda compra/venta debe hacerse por medio de los **tickets**.", inline=False)
-    embed.set_footer(text="El incumplimiento de estas reglas puede conllevar advertencias, bloqueos o expulsión.")
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message(
+            "❌ Este comando no está disponible en este servidor. / This command is not available in this server.",
+            ephemeral=True
+        )
+        return
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    embed = discord.Embed(
+        title="📜 REGLAS & TÉRMINOS / RULES & TERMS",
+        description=(
+            "🔒 **100% Seguro | 100% Safe**\n"
+            "✅ Transacciones rápidas y verificadas.\n"
+            "✅ Staff atento y sistema profesional.\n\n"
+            "⚠️ **Reglas Importantes / Important Rules:**\n"
+            "1️⃣ No se hacen reembolsos después de entregar los ítems.\n"
+            "2️⃣ Todo pago debe estar acompañado de evidencia clara.\n"
+            "3️⃣ Abre un ticket para cualquier problema o consulta.\n"
+            "4️⃣ Está prohibido hacer spam, insultar o faltar al respeto.\n"
+            "5️⃣ Al pagar, aceptas automáticamente estos términos.\n\n"
+            "🔒 **100% Safe Purchases**\n"
+            "✅ Fast and verified transactions.\n"
+            "✅ Professional system and responsive staff.\n\n"
+            "⚠️ **Rules:**\n"
+            "1️⃣ No refunds after items are delivered.\n"
+            "2️⃣ Every payment must be accompanied by proof.\n"
+            "3️⃣ Open a ticket for issues or questions.\n"
+            "4️⃣ Spamming, insults or disrespect are not allowed.\n"
+            "5️⃣ By paying, you agree to these terms.\n\n"
+            "📌 Presiona un botón abajo para navegar / Press a button below to navigate."
+        ),
+        color=discord.Color.orange(),
+        timestamp=datetime.datetime.utcnow()
+    )
+
+    embed.set_footer(
+        text="Sistema de Seguridad y Reglas / Rules & Safe System",
+        icon_url=interaction.client.user.display_avatar.url
+    )
+    embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")
+
+    class RulesView(View):
+        def __init__(self):
+            super().__init__(timeout=None)
+            guild_id = interaction.guild_id
+            self.add_item(Button(
+                label="🎟️ Crear Ticket / Create Ticket",
+                url=f"https://discord.com/channels/{guild_id}/1373527079382941817",
+                style=discord.ButtonStyle.link
+            ))
+            self.add_item(Button(
+                label="📩 Dejar Vouch / Leave Vouch",
+                url=f"https://discord.com/channels/{guild_id}/1373533364526780427",
+                style=discord.ButtonStyle.link
+            ))
+            self.add_item(Button(
+                label="💰 Ver Precios / View Prices",
+                url=f"https://discord.com/channels/{guild_id}/1317724845055676527",
+                style=discord.ButtonStyle.link
+            ))
+
+    await interaction.response.send_message(embed=embed, view=RulesView(), ephemeral=False)
 
 @bot.tree.command(name="r", description="💵 Muestra los precios de los Robux en inglés y español")
 async def robux_prices(interaction: discord.Interaction):
