@@ -8,6 +8,7 @@ import re
 from discord.ui import View, Button
 from discord import app_commands, ui, Interaction, Embed, ButtonStyle
 from discord.ext import commands
+from datetime import datetime, timedelta
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -964,63 +965,127 @@ async def removercompra(interaction: discord.Interaction, user: discord.User, pr
     data_manager.save()
 
     await interaction.response.send_message(f"✅ Compra removida correctamente para {user.mention}.\nProducto: {producto}\nCantidad: {cantidad}", ephemeral=True)
-class GiveawayButton(ui.Button):
-    def __init__(self):
-        super().__init__(label="🎉 ¡Participar!", style=ButtonStyle.success, emoji="🎁")
 
-    async def callback(self, interaction: Interaction):
-        user = interaction.user
-        # Aquí podrías guardar la participación en base de datos o lista
-        await interaction.response.send_message(f"🎉 {user.mention}, ¡tu participación fue registrada!", ephemeral=True)
 
-@tree.command(
+class GiveawayModal(ui.Modal, title="🎉 Crear Giveaway / Create Giveaway"):
+
+    duracion = ui.TextInput(
+        label="Duración en minutos / Duration in minutes",
+        placeholder="Ejemplo: 30",
+        required=True,
+        max_length=4,
+        style=discord.TextStyle.short
+    )
+    ganadores = ui.TextInput(
+        label="Número de ganadores / Number of winners",
+        placeholder="Ejemplo: 1",
+        required=True,
+        max_length=2,
+        style=discord.TextStyle.short
+    )
+    premio = ui.TextInput(
+        label="Premio / Prize",
+        placeholder="Ejemplo: 1000 Robux, 50000 Coins, Fruta 2x1, etc.",
+        required=True,
+        max_length=100,
+        style=discord.TextStyle.short
+    )
+    canal = ui.TextInput(
+        label="ID del canal donde quieres el giveaway / Channel ID for the giveaway",
+        placeholder="Ejemplo: 123456789012345678",
+        required=True,
+        max_length=20,
+        style=discord.TextStyle.short
+    )
+
+    async def on_submit(self, interaction: Interaction):
+        try:
+            duracion_min = int(self.duracion.value)
+            num_ganadores = int(self.ganadores.value)
+            canal_id = int(self.canal.value)
+        except:
+            await interaction.response.send_message("❌ Duración, ganadores y canal deben ser números válidos.", ephemeral=True)
+            return
+        
+        canal_obj = interaction.guild.get_channel(canal_id)
+        if not canal_obj:
+            await interaction.response.send_message("❌ No encontré el canal indicado.", ephemeral=True)
+            return
+        
+        if duracion_min <= 0 or num_ganadores <= 0:
+            await interaction.response.send_message("❌ La duración y ganadores deben ser mayores que 0.", ephemeral=True)
+            return
+        
+        fin_giveaway = datetime.utcnow() + timedelta(minutes=duracion_min)
+        fin_str = fin_giveaway.strftime("%Y-%m-%d %H:%M UTC")
+
+        embed = Embed(
+            title="🎉 ¡Nuevo Giveaway! / New Giveaway!",
+            description=(
+                f"🎁 Premio / Prize: **{self.premio.value}**\n"
+                f"⏳ Duración / Duration: **{duracion_min} minutos**\n"
+                f"🏆 Ganadores / Winners: **{num_ganadores}**\n"
+                f"📅 Finaliza / Ends: **{fin_str}**\n\n"
+                "🎉 Reacciona con 🎉 para participar!\n"
+                "*Giveaway organizado por el equipo de ventas / Giveaway hosted by sales team*"
+            ),
+            color=0xFF69B4,
+            timestamp=datetime.utcnow()
+        )
+        embed.set_footer(text=f"ID Giveaway: {interaction.id}")
+        embed.set_thumbnail(url="https://i.imgur.com/3BRP7Vz.gif")  # GIF decorativo animado
+        
+        giveaway_message = await canal_obj.send(embed=embed)
+        await giveaway_message.add_reaction("🎉")
+
+        await interaction.response.send_message(
+            f"✅ Giveaway creado en {canal_obj.mention}!\n"
+            f"Premio: **{self.premio.value}**, Duración: {duracion_min} minutos, Ganadores: {num_ganadores}",
+            ephemeral=True
+        )
+
+        # Aquí podrías guardar info para el seguimiento y selección automática de ganadores después, si quieres automatizar.
+
+@bot.tree.command(
     name="giveaway",
-    description="🎁 Crea un giveaway elegante con botón para participar",
+    description="🎉 Crea un giveaway decorado y personalizado / Create a decorated giveaway",
     guild=discord.Object(id=server_configs[0])
 )
-@app_commands.describe(
-    titulo="Título del giveaway",
-    descripcion="Descripción del giveaway",
-    duracion="Duración en minutos",
-    canal="Canal donde se publicará el giveaway"
-)
-async def giveaway(
-    interaction: Interaction,
-    titulo: str,
-    descripcion: str,
-    duracion: int,
-    canal: discord.TextChannel
-):
+async def giveaway(interaction: Interaction):
     if interaction.guild_id not in server_configs:
         await interaction.response.send_message("❌ Comando no disponible en este servidor.", ephemeral=True)
         return
     
-    fin_timestamp = int((discord.utils.utcnow() + discord.utils.timedelta(minutes=duracion)).timestamp())
+    modal = GiveawayModal()
+    await interaction.response.send_modal(modal)
 
-    embed = Embed(
-        title=f"🎉✨ ¡Giveaway! {titulo}",
-        description=f"{descripcion}\n\n🕒 Termina <t:{fin_timestamp}:R>\n\n**¡Haz click en el botón para participar!**",
-        color=0xFFD700
+    
+@bot.tree.command(
+    name="grupo",
+    description="🔗 Muestra el grupo de Roblox para comprar Robux o participar en sorteos / Show the Roblox group to buy Robux or join giveaways",
+    guild=discord.Object(id=server_configs[0])
+)
+async def grupo(interaction: discord.Interaction):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message(
+            "❌ Comando no disponible en este servidor. / Command not available in this server.", 
+            ephemeral=True
+        )
+        return
+
+    embed = discord.Embed(
+        title="🎮 Únete a nuestro grupo de Roblox / Join our Roblox group!",
+        description=(
+            "Para comprar Robux o recibir premios en sorteos, debes estar en nuestro grupo de Roblox.\n"
+            "**Link:** [CoinsVerse Roblox Group](https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about)\n\n"
+            "To buy Robux or win giveaways, you must be in our Roblox group.\n"
+            "**Link:** [CoinsVerse Roblox Group](https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about)"
+        ),
+        color=0x00FF00
     )
-    embed.set_thumbnail(url="https://i.imgur.com/6XG4bqS.gif")  # GIF animado bonito (ejemplo)
-    embed.set_footer(text=f"Iniciado por {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
-    embed.timestamp = discord.utils.utcnow()
-
-    view = ui.View(timeout=None)
-    view.add_item(GiveawayButton())
-
-    # Envía el giveaway con @everyone para notificar
-    mensaje = await canal.send(content="@everyone", embed=embed, view=view)
-    await interaction.response.send_message(f"✅ Giveaway creado en {canal.mention}", ephemeral=True)
-
-    # Esperar el tiempo del giveaway
-    await asyncio.sleep(duracion * 60)
-
-    # Aquí deberías tener una lista o DB con los participantes,
-    # para el ejemplo elegimos ganador aleatorio al azar (simulado)
-    # Como no guardamos participantes reales, mensaje general:
-    ganador = "No implementado, agrega lista de participantes"
-    await canal.send(f"⏰ El giveaway **{titulo}** ha terminado.\n🎊 ¡Gracias por participar!\n\nGanador: {ganador}")
+    embed.set_thumbnail(url="https://www.roblox.com/favicon.ico")  # Icono de Roblox
+    embed.set_footer(text="¡Gracias por ser parte de la comunidad! / Thanks for being part of the community!")
+    await interaction.response.send_message(embed=embed, ephemeral=False)
 
 @bot.event
 async def on_ready():
