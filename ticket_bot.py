@@ -875,9 +875,38 @@ async def profile(interaction: discord.Interaction, user: discord.Member = None)
     await interaction.response.send_message(embed=embed)
 
     
+class PromoModal(ui.Modal, title="📢 Ingresar Promociones / Enter Promotions"):
+    promociones = ui.TextInput(
+        label="Escribe tus promociones (una por línea / one per line)",
+        style=discord.TextStyle.paragraph,
+        placeholder="🎮 Robux: 10% off sobre 1000\n💰 Coins: 500 extra con 5000\n🍉 Fruta: 2x1 hasta el 31/05",
+        required=True,
+        max_length=1000
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        lines = self.promociones.value.strip().split("\n")
+        embed = discord.Embed(
+            title="📢 Promociones Activas / Active Promotions",
+            description="¡Aprovecha estas ofertas especiales! / Take advantage of these special offers!",
+            color=0x00FF00
+        )
+        embed.set_thumbnail(url="https://i.imgur.com/YOUR_LOGO.png")
+        embed.set_footer(text="Actualizado por el equipo de ventas / Updated by sales team")
+
+        for line in lines:
+            if ":" in line:
+                producto, promo = line.split(":", 1)
+                embed.add_field(name=producto.strip(), value=promo.strip(), inline=False)
+            else:
+                embed.add_field(name="🛍️ Promo", value=line.strip(), inline=False)
+
+        await interaction.response.send_message(content="@everyone", embed=embed, ephemeral=False)
+
+# Comando para abrir el modal
 @bot.tree.command(
     name="promos",
-    description="📢 Muestra las promociones activas y notifica a todos / Show active promotions and notify everyone",
+    description="📢 Muestra promociones personalizadas y notifica a todos / Show custom promos and notify everyone",
     guild=discord.Object(id=server_configs[0])
 )
 async def promos(interaction: discord.Interaction):
@@ -885,26 +914,9 @@ async def promos(interaction: discord.Interaction):
         await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
         return
 
-    # Diccionario editable con promociones (puedes agregar o quitar aquí)
-    promociones = {
-        "🎮 Robux": "🔥 10% de descuento en compras mayores a 1000 Robux.\n🔥 10% discount on purchases over 1000 Robux.",
-        "💰 Coins": "🎁 Compra 5000 Coins y llévate 500 gratis.\n🎁 Buy 5000 Coins and get 500 free.",
-        "🍉 Fruta": "🍉 Promo 2x1 válida hasta el 31/05.\n🍉 2x1 promo valid until 05/31."
-    }
+    await interaction.response.send_modal(PromoModal())
 
-    embed = discord.Embed(
-        title="📢 Promociones Activas / Active Promotions",
-        description="Aquí están las promociones vigentes para nuestros productos. ¡Aprovecha! / Here are the current promotions for our products. Take advantage!",
-        color=0x00FF00
-    )
-    embed.set_thumbnail(url="https://i.imgur.com/YOUR_LOGO.png")  # Cambia por tu logo si quieres
-    embed.set_footer(text="Actualizado por el equipo de ventas / Updated by sales team")
 
-    for producto, promo_text in promociones.items():
-        embed.add_field(name=producto, value=promo_text, inline=False)
-
-    # Envía mensaje con @everyone visible para todos y embed bonito
-    await interaction.response.send_message(content="@everyone", embed=embed, ephemeral=False)
 
 @tree.command(
     name="removercompra",
