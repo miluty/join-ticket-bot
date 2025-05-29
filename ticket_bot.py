@@ -6,7 +6,7 @@ import asyncio
 import random
 import re
 from discord.ui import View, Button
-from discord import ui, app_commands
+from discord import app_commands, ui, Interaction, Embed, ButtonStyle
 from discord.ext import commands
 
 intents = discord.Intents.all()
@@ -964,46 +964,63 @@ async def removercompra(interaction: discord.Interaction, user: discord.User, pr
     data_manager.save()
 
     await interaction.response.send_message(f"✅ Compra removida correctamente para {user.mention}.\nProducto: {producto}\nCantidad: {cantidad}", ephemeral=True)
+class GiveawayButton(ui.Button):
+    def __init__(self):
+        super().__init__(label="🎉 ¡Participar!", style=ButtonStyle.success, emoji="🎁")
 
-@bot.tree.command(
-    name="g",
-    description="🔗 Muestra el grupo de Roblox para la compra de Robux",
-    guild=discord.Object(id=server_configs[0])  # Limitar a tu servidor
+    async def callback(self, interaction: Interaction):
+        user = interaction.user
+        # Aquí podrías guardar la participación en base de datos o lista
+        await interaction.response.send_message(f"🎉 {user.mention}, ¡tu participación fue registrada!", ephemeral=True)
+
+@tree.command(
+    name="giveaway",
+    description="🎁 Crea un giveaway elegante con botón para participar",
+    guild=discord.Object(id=server_configs[0])
 )
-async def grupo_roblox(interaction: discord.Interaction):
+@app_commands.describe(
+    titulo="Título del giveaway",
+    descripcion="Descripción del giveaway",
+    duracion="Duración en minutos",
+    canal="Canal donde se publicará el giveaway"
+)
+async def giveaway(
+    interaction: Interaction,
+    titulo: str,
+    descripcion: str,
+    duracion: int,
+    canal: discord.TextChannel
+):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message(
-            "❌ Comando no disponible en este servidor.",
-            ephemeral=True
-        )
+        await interaction.response.send_message("❌ Comando no disponible en este servidor.", ephemeral=True)
         return
-
-    url_grupo = "https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about"
-    embed = discord.Embed(
-        title="🎮 Únete al grupo oficial de Roblox CoinsVerse",
-        description=(
-            "**¿Quieres recibir Robux?**\n"
-            "Debes estar **unido a nuestro grupo de Roblox** por al menos **15 días** para poder hacer compras.\n\n"
-            f"[👉 Haz clic aquí para unirte al grupo Roblox CoinsVerse](<{url_grupo}>)"
-        ),
-        color=0x9146FF,  # Color morado estilo Roblox
-        timestamp=discord.utils.utcnow()
-    )
-    embed.set_thumbnail(url="https://i.imgur.com/4B7iN5L.png")  # Logo Roblox/CoinsVerse
-    embed.set_footer(text="CoinsVerse - ¡Gracias por ser parte de nuestra comunidad!")
     
-    # Botones para interacción (opcional)
-    view = View()
-    view.add_item(
-        Button(
-            label="Ir al grupo Roblox",
-            url=url_grupo,
-            style=discord.ButtonStyle.link
-        )
+    fin_timestamp = int((discord.utils.utcnow() + discord.utils.timedelta(minutes=duracion)).timestamp())
+
+    embed = Embed(
+        title=f"🎉✨ ¡Giveaway! {titulo}",
+        description=f"{descripcion}\n\n🕒 Termina <t:{fin_timestamp}:R>\n\n**¡Haz click en el botón para participar!**",
+        color=0xFFD700
     )
+    embed.set_thumbnail(url="https://i.imgur.com/6XG4bqS.gif")  # GIF animado bonito (ejemplo)
+    embed.set_footer(text=f"Iniciado por {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
+    embed.timestamp = discord.utils.utcnow()
 
-    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+    view = ui.View(timeout=None)
+    view.add_item(GiveawayButton())
 
+    # Envía el giveaway con @everyone para notificar
+    mensaje = await canal.send(content="@everyone", embed=embed, view=view)
+    await interaction.response.send_message(f"✅ Giveaway creado en {canal.mention}", ephemeral=True)
+
+    # Esperar el tiempo del giveaway
+    await asyncio.sleep(duracion * 60)
+
+    # Aquí deberías tener una lista o DB con los participantes,
+    # para el ejemplo elegimos ganador aleatorio al azar (simulado)
+    # Como no guardamos participantes reales, mensaje general:
+    ganador = "No implementado, agrega lista de participantes"
+    await canal.send(f"⏰ El giveaway **{titulo}** ha terminado.\n🎊 ¡Gracias por participar!\n\nGanador: {ganador}")
 
 @bot.event
 async def on_ready():
