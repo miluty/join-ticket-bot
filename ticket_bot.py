@@ -874,22 +874,22 @@ async def profile(interaction: discord.Interaction, user: discord.Member = None)
 
     await interaction.response.send_message(embed=embed)
 
-class DescuentoModal(ui.Modal, title="🧮 Crear Anuncio de Descuento / Create Discount Announcement"):
+class DescuentoModal(ui.Modal, title="💸 Anuncio de Descuento"):
     producto = ui.TextInput(
         label="Producto (Fruta, Robux, Coins)",
-        placeholder="Ejemplo: Robux",
+        placeholder="Ej: Robux",
         required=True,
         max_length=20
     )
     descuento = ui.TextInput(
-        label="Porcentaje de descuento / Discount %",
-        placeholder="Ejemplo: 15",
+        label="Porcentaje (%)",
+        placeholder="Ej: 15",
         required=True,
-        max_length=4
+        max_length=3
     )
     canal_id = ui.TextInput(
-        label="ID del canal destino / Destination channel ID",
-        placeholder="Ejemplo: 123456789012345678",
+        label="ID del canal destino",
+        placeholder="Ej: 123456789012345678",
         required=True
     )
 
@@ -916,7 +916,7 @@ class DescuentoModal(ui.Modal, title="🧮 Crear Anuncio de Descuento / Create D
                 description=f"🎉 ¡{porcentaje}% de descuento por tiempo limitado! / {porcentaje}% OFF for a limited time!",
                 color=0xFFD700
             )
-            embed.set_thumbnail(url="https://i.imgur.com/YOUR_LOGO.png")
+            embed.set_thumbnail(url="https://i.imgur.com/YOUR_LOGO.png")  # Cambia a tu logo si lo deseas
             embed.set_footer(text="Promoción válida hasta agotar stock / Valid while supplies last")
 
             await canal.send(content="@everyone", embed=embed)
@@ -936,6 +936,7 @@ async def anuncio_descuento(interaction: discord.Interaction):
         return
 
     await interaction.response.send_modal(DescuentoModal())
+
 
 
 
@@ -980,15 +981,29 @@ async def removercompra(interaction: discord.Interaction, user: discord.User, pr
     await interaction.response.send_message(f"✅ Compra removida correctamente para {user.mention}.\nProducto: {producto}\nCantidad: {cantidad}", ephemeral=True)
 
 
-@bot.tree.command(name="g", description="🔗 Muestra el grupo de Roblox para la compra de Robux")
+@tree.command(
+    name="g",
+    description="🔗 Muestra el grupo de Roblox para recibir Robux / Show Roblox group for receiving Robux",
+    guild=discord.Object(id=server_configs[0])
+)
 async def grupo_roblox(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible en este servidor.", ephemeral=True)
+        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
         return
 
     url_grupo = "https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about"
-    mensaje = (
-        "🎮 Para recibir Robux debes estar **unido a nuestro grupo de Roblox** por al menos **15 días**:\n"
-        f"> {url_grupo}"
+
+    embed = discord.Embed(
+        title="🎮 Grupo Oficial de Roblox / Official Roblox Group",
+        description=(
+            f"Debes estar **unido a nuestro grupo** por al menos **15 días** para poder recibir Robux.\n\n"
+            f"You must be **a member of our group** for at least **15 days** to receive Robux.\n\n"
+            f"🔗 [Haz clic aquí para unirte / Click here to join]({url_grupo})"
+        ),
+        color=0x3498db
     )
-    await interaction.response.send_message(mensaje)
+    embed.set_thumbnail(url="https://tr.rbxcdn.com/835e3403998e1cf5207b0fd9445dfb86/150/150/Image/Png")
+    embed.set_footer(text="Gracias por tu compra / Thank you for your purchase")
+
+    await interaction.response.send_message(embed=embed, ephemeral=False)
+
