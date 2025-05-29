@@ -39,6 +39,7 @@ async def on_ready():
         print(f"✅ Comandos sincronizados correctamente en guild: {len(synced)}")
     except Exception as e:
         print(f"❌ Error al sincronizar comandos: {e}")
+
 class DataManager:
     def __init__(self):
         self.data = {
@@ -54,8 +55,21 @@ class DataManager:
 
     def load(self):
         if os.path.exists(DATA_FILE):
-            with open(DATA_FILE, "r") as f:
-                self.data = json.load(f)
+            try:
+                with open(DATA_FILE, "r") as f:
+                    self.data = json.load(f)
+            except json.JSONDecodeError:
+                print("⚠️ Warning: El archivo data.json está vacío o corrupto. Se usará configuración por defecto.")
+                self.data = {
+                    "ticket_data": {},
+                    "claimed_tickets": {},
+                    "user_purchases": {},
+                    "roles_assigned": {},
+                    "robux_stock": 10000,
+                    "coins_stock": 5000,
+                    "fruit_stock": 3000
+                }
+                self.save()
 
     def save(self):
         with open(DATA_FILE, "w") as f:
@@ -95,6 +109,11 @@ class DataManager:
         self.data["user_purchases"][user_id_str] = current + amount
         self.save()
 
+    # Método para registrar una venta (añadir al total de compras)
+    def add_sale(self, user_id, producto, cantidad):
+        # Puedes expandir esto para manejar productos distintos si quieres
+        self.add_user_purchase(user_id, cantidad)
+
     # Stock
     def get_stock(self, product):
         return self.data.get(f"{product}_stock", 0)
@@ -103,7 +122,25 @@ class DataManager:
         key = f"{product}_stock"
         self.data[key] = max(0, self.data.get(key, 0) - amount)
         self.save()
-        
+
+    def add_stock(self, product, amount):
+        key = f"{product}_stock"
+        self.data[key] = self.data.get(key, 0) + amount
+        self.save()
+
+    # Roles asignados
+    def get_role_assigned(self, user_id):
+        return self.data["roles_assigned"].get(str(user_id))
+
+    def set_role_assigned(self, user_id, role_id):
+        self.data["roles_assigned"][str(user_id)] = role_id
+        self.save()
+
+    def remove_role_assigned(self, user_id):
+        self.data["roles_assigned"].pop(str(user_id), None)
+        self.save()
+
+
 data_manager = DataManager()
 
         
