@@ -874,47 +874,58 @@ async def profile(interaction: discord.Interaction, user: discord.Member = None)
 
     await interaction.response.send_message(embed=embed)
 
-    
-class PromoModal(ui.Modal, title="📢 Ingresar Promociones / Enter Promotions"):
-    promociones = ui.TextInput(
-        label="Escribe tus promociones (una por línea / one per line)",
-        style=discord.TextStyle.paragraph,
-        placeholder="🎮 Robux: 10% off sobre 1000\n💰 Coins: 500 extra con 5000\n🍉 Fruta: 2x1 hasta el 31/05",
-        required=True,
-        max_length=1000
+class DescuentoModal(ui.Modal, title="🧮 Crear Anuncio de Descuento / Create Discount Announcement"):
+    producto = ui.TextInput(
+        label="Producto (Fruta, Robux, Coins)",
+        placeholder="Ejemplo: Robux",
+        required=True
+    )
+    descuento = ui.TextInput(
+        label="Porcentaje de descuento / Discount %",
+        placeholder="Ejemplo: 15",
+        required=True
+    )
+    canal_id = ui.TextInput(
+        label="ID del canal destino / Destination channel ID",
+        placeholder="Ejemplo: 123456789012345678",
+        required=True
     )
 
     async def on_submit(self, interaction: discord.Interaction):
-        lines = self.promociones.value.strip().split("\n")
-        embed = discord.Embed(
-            title="📢 Promociones Activas / Active Promotions",
-            description="¡Aprovecha estas ofertas especiales! / Take advantage of these special offers!",
-            color=0x00FF00
-        )
-        embed.set_thumbnail(url="https://i.imgur.com/YOUR_LOGO.png")
-        embed.set_footer(text="Actualizado por el equipo de ventas / Updated by sales team")
+        try:
+            canal = interaction.client.get_channel(int(self.canal_id.value))
+            if not canal:
+                await interaction.response.send_message("❌ Canal no encontrado / Channel not found.", ephemeral=True)
+                return
 
-        for line in lines:
-            if ":" in line:
-                producto, promo = line.split(":", 1)
-                embed.add_field(name=producto.strip(), value=promo.strip(), inline=False)
-            else:
-                embed.add_field(name="🛍️ Promo", value=line.strip(), inline=False)
+            porcentaje = self.descuento.value.strip()
+            producto = self.producto.value.strip().capitalize()
 
-        await interaction.response.send_message(content="@everyone", embed=embed, ephemeral=False)
+            embed = discord.Embed(
+                title=f"💸 ¡Descuento en {producto}! / {producto} Discount!",
+                description=f"🎉 ¡{porcentaje}% de descuento por tiempo limitado! / {porcentaje}% OFF for a limited time!",
+                color=0xFFD700
+            )
+            embed.set_thumbnail(url="https://i.imgur.com/YOUR_LOGO.png")
+            embed.set_footer(text="Promoción válida hasta agotar stock / Valid while supplies last")
 
-# Comando para abrir el modal
-@bot.tree.command(
-    name="promos",
-    description="📢 Muestra promociones personalizadas y notifica a todos / Show custom promos and notify everyone",
+            await canal.send(content="@everyone", embed=embed)
+            await interaction.response.send_message("✅ Anuncio enviado correctamente / Announcement sent successfully", ephemeral=True)
+
+        except Exception as e:
+            await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
+
+@tree.command(
+    name="anuncio_descuento",
+    description="💸 Crea un anuncio decorado de descuento para un producto / Create a styled discount announcement",
     guild=discord.Object(id=server_configs[0])
 )
-async def promos(interaction: discord.Interaction):
+async def anuncio_descuento(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
         await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
         return
 
-    await interaction.response.send_modal(PromoModal())
+    await interaction.response.send_modal(DescuentoModal())
 
 
 
