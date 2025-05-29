@@ -965,32 +965,20 @@ async def removercompra(interaction: discord.Interaction, user: discord.User, pr
 
     await interaction.response.send_message(f"✅ Compra removida correctamente para {user.mention}.\nProducto: {producto}\nCantidad: {cantidad}", ephemeral=True)
 
-
 @tree.command(
     name="g",
-    description="🔗 Muestra el grupo de Roblox para recibir Robux / Shows the Roblox group to receive Robux",
-    guild=discord.Object(id=server_configs[0])
+    description="🔗 Muestra el grupo de Roblox para la compra de Robux",
+    guild=discord.Object(id=1317658154397466715)  # Cambia al ID de tu servidor
 )
 async def grupo_roblox(interaction: discord.Interaction):
-    if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible en este servidor. / Command not available in this server.", ephemeral=True)
-        return
-
     url_grupo = "https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about"
-
-    embed = discord.Embed(
-        title="🎮 Grupo de Roblox para recibir Robux / Roblox Group to Receive Robux",
-        description=(
-            "📌 Debes estar **unido al grupo** al menos **15 días** para recibir Robux.\n"
-            "📌 You must be **a group member for at least 15 days** to receive Robux.\n\n"
-            f"🔗 [ÚNETE / JOIN HERE]({url_grupo})"
-        ),
-        color=discord.Color.blue()
+    mensaje = (
+        "🎮 Para recibir Robux debes estar **unido a nuestro grupo de Roblox** por al menos **15 días**:\n"
+        f"> {url_grupo}"
     )
-    embed.set_thumbnail(url="https://tr.rbxcdn.com/6f71aa7a02fc9977fca93360e359418c/150/150/Image/Png")
-    embed.set_footer(text="Coinverse | Seguridad y confianza - Safe & Trusted")
+    await interaction.response.send_message(mensaje)
 
-    await interaction.response.send_message(embed=embed, ephemeral=False)
+
 @bot.event
 async def on_ready():
     await bot.wait_until_ready()
