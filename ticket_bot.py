@@ -889,52 +889,59 @@ async def stock(interaction: discord.Interaction):
     embed.set_footer(text="Bot de ventas / Sales Bot")
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
-@tree.command(
+    
+
+@bot.tree.command(
     name="upstock",
-    description="➕ Aumenta el stock de un producto / Increase stock of a product",
+    description="⬆️ Aumenta el stock de un producto específico / Increase stock of a product",
     guild=discord.Object(id=server_configs[0])
 )
-@discord.app_commands.describe(
-    producto="El producto a aumentar / The product to increase",
-    cantidad="Cantidad a añadir / Amount to add"
-)
-@discord.app_commands.choices(producto=[
-    discord.app_commands.Choice(name="Robux", value="robux"),
-    discord.app_commands.Choice(name="Coins", value="coins"),
-    discord.app_commands.Choice(name="Fruta", value="fruit"),
-])
-async def upstock(interaction: discord.Interaction, producto: discord.app_commands.Choice[str], cantidad: int):
-    if cantidad <= 0:
-        await interaction.response.send_message(
-            "❌ La cantidad debe ser mayor que 0. / Amount must be greater than 0.",
-            ephemeral=True
-        )
+@discord.app_commands.describe(producto="Producto a aumentar (robux, coins, fruit)", cantidad="Cantidad a añadir")
+async def upstock(interaction: discord.Interaction, producto: str, cantidad: int):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
         return
 
-    if producto.value == "robux":
-        bot.robux_stock += cantidad
-    elif producto.value == "coins":
-        bot.coins_stock += cantidad
-    elif producto.value == "fruit":
-        bot.fruit_stock += cantidad
-    else:
-        await interaction.response.send_message(
-            "❌ Producto no válido. / Invalid product.",
-            ephemeral=True
-        )
+    producto = producto.lower()
+    valid_products = {"robux", "coins", "fruit"}
+    if producto not in valid_products:
+        await interaction.response.send_message("❌ Producto inválido. Usa robux, coins o fruit. / Invalid product. Use robux, coins or fruit.", ephemeral=True)
         return
+
+    if cantidad <= 0:
+        await interaction.response.send_message("❌ La cantidad debe ser mayor que 0. / Amount must be greater than 0.", ephemeral=True)
+        return
+
+    # Leer JSON
+    with open("data.json", "r") as f:
+        data = json.load(f)
+
+    # Campo correspondiente en JSON
+    key = f"{producto}_stock"
+
+    # Sumar cantidad
+    if key in data:
+        data[key] += cantidad
+    else:
+        data[key] = cantidad  # Por si no existiera
+
+    # Guardar JSON
+    with open("data.json", "w") as f:
+        json.dump(data, f, indent=4)
 
     embed = discord.Embed(
-        title="✅ Stock actualizado / Stock updated",
-        description=f"Producto / Product: **{producto.name}**\nCantidad añadida / Amount added: **{cantidad}**",
-        color=discord.Color.green()
+        title="📈 Stock actualizado / Stock updated",
+        description=f"Producto: **{producto.capitalize()}**\nCantidad añadida: **{cantidad}**\nNuevo stock: **{data[key]}**",
+        color=0x00FF00
     )
-    embed.set_footer(text="Bot de ventas / Sales Bot")
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+
 @bot.tree.command(
     name="promos",
-    description="🔥 Muestra las promociones y ofertas actuales / Show current promotions and offers",
+    description="📢 Muestra las promociones activas y notifica a todos / Show active promotions and notify everyone",
     guild=discord.Object(id=server_configs[0])
 )
 async def promos(interaction: discord.Interaction):
@@ -942,24 +949,27 @@ async def promos(interaction: discord.Interaction):
         await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
         return
 
+    # Diccionario editable con promociones (puedes agregar o quitar aquí)
+    promociones = {
+        "🎮 Robux": "🔥 10% de descuento en compras mayores a 1000 Robux.\n🔥 10% discount on purchases over 1000 Robux.",
+        "💰 Coins": "🎁 Compra 5000 Coins y llévate 500 gratis.\n🎁 Buy 5000 Coins and get 500 free.",
+        "🍉 Fruta": "🍉 Promo 2x1 válida hasta el 31/05.\n🍉 2x1 promo valid until 05/31."
+    }
+
     embed = discord.Embed(
-        title="🔥 Promociones y Ofertas / Promotions & Deals 🔥",
-        description=(
-            "**🎉 ¡Aprovecha estas increíbles ofertas por tiempo limitado! / Take advantage of these limited-time deals! 🎉**\n\n"
-            "• **🎮 Robux:** 10% de descuento en compras mayores a 1000 Robux / 10% off on purchases over 1000 Robux\n"
-            "• **💰 Coins:** Compra 500 y recibe 50 gratis / Buy 500 and get 50 free\n"
-            "• **🍉 Fruta:** 2x1 en packs especiales hasta el domingo / 2-for-1 on special packs until Sunday\n\n"
-            "⌛ *Las promociones pueden cambiar sin previo aviso / Promotions may change without prior notice.*\n"
-            "💬 Para dudas, contacta al soporte."
-        ),
-        color=0xFF4500  # Naranja vibrante
+        title="📢 Promociones Activas / Active Promotions",
+        description="Aquí están las promociones vigentes para nuestros productos. ¡Aprovecha! / Here are the current promotions for our products. Take advantage!",
+        color=0x00FF00
     )
+    embed.set_thumbnail(url="https://i.imgur.com/YOUR_LOGO.png")  # Cambia por tu logo si quieres
+    embed.set_footer(text="Actualizado por el equipo de ventas / Updated by sales team")
 
-    embed.set_footer(text="© TuBot • Ventas Virtuales / Virtual Sales")
-    embed.set_thumbnail(url="https://i.imgur.com/4M34hi2.png")  # Puedes poner tu logo o imagen relacionada
-    embed.set_author(name=str(interaction.user), icon_url=interaction.user.display_avatar.url)
+    for producto, promo_text in promociones.items():
+        embed.add_field(name=producto, value=promo_text, inline=False)
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    # Envía mensaje con @everyone visible para todos y embed bonito
+    await interaction.response.send_message(content="@everyone", embed=embed, ephemeral=False)
+
 
 @bot.tree.command(name="g", description="🔗 Muestra el grupo de Roblox para la compra de Robux")
 async def grupo_roblox(interaction: discord.Interaction):
