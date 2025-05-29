@@ -740,7 +740,80 @@ async def rules(interaction: discord.Interaction):
             ))
 
     await interaction.response.send_message(embed=embed, view=RulesView(), ephemeral=False)
+@bot.tree.command(name="ranking", description="📊 Muestra el ranking de usuarios por compras / Show purchase ranking")
+async def ranking(interaction: discord.Interaction):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
+        return
 
+    purchases = data_manager.data.get("user_purchases", {})
+    if not purchases:
+        await interaction.response.send_message("📉 No hay datos de compras aún. / No purchase data yet.", ephemeral=True)
+        return
+
+    # Ordenar por cantidad descendente, tomar top 10
+    sorted_purchases = sorted(purchases.items(), key=lambda x: x[1], reverse=True)[:10]
+
+    embed = discord.Embed(
+        title="🏆 Ranking de Compras / Purchase Ranking",
+        color=discord.Color.gold(),
+        timestamp=datetime.datetime.utcnow()
+    )
+
+    description = ""
+    for i, (user_id, total) in enumerate(sorted_purchases, start=1):
+        member = interaction.guild.get_member(int(user_id))
+        name = member.display_name if member else f"User ID {user_id}"
+        description += f"**{i}. {name}** — {total} compras\n"
+
+    embed.description = description
+    embed.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
+
+    await interaction.response.send_message(embed=embed)
+
+@bot.tree.command(name="addpurchase", description="➕ Añade compras manualmente a un usuario / Add purchases manually to a user")
+@app_commands.describe(user="Usuario a quien añadir compras / User to add purchases", amount="Cantidad a añadir / Amount to add")
+async def addpurchase(interaction: discord.Interaction, user: discord.Member, amount: int):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
+        return
+    
+    # Solo staff autorizado (ajusta roles o permisos)
+    if not interaction.user.guild_permissions.manage_guild:
+        await interaction.response.send_message("❌ No tienes permisos para usar este comando. / You don't have permissions to use this command.", ephemeral=True)
+        return
+
+    if amount <= 0:
+        await interaction.response.send_message("❌ La cantidad debe ser mayor que cero. / Amount must be greater than zero.", ephemeral=True)
+        return
+
+    data_manager.add_user_purchase(user.id, amount)
+
+    await interaction.response.send_message(
+        f"✅ Se añadieron {amount} compras a {user.mention}. / Added {amount} purchases to {user.mention}.",
+        ephemeral=True
+    )
+@bot.tree.command(name="profile", description="👤 Muestra el perfil de compras de un usuario / Show user purchase profile")
+@app_commands.describe(user="Usuario a mostrar / User to show")
+async def profile(interaction: discord.Interaction, user: discord.Member = None):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
+        return
+
+    user = user or interaction.user
+    total_purchases = data_manager.get_user_purchases(user.id)
+
+    embed = discord.Embed(
+        title=f"Perfil de Compras / Purchase Profile — {user.display_name}",
+        color=discord.Color.blue(),
+        timestamp=datetime.datetime.utcnow()
+    )
+
+    embed.add_field(name="🛒 Total de compras / Total Purchases", value=str(total_purchases), inline=False)
+    embed.set_thumbnail(url=user.display_avatar.url)
+    embed.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
+
+    await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="r", description="💵 Muestra los precios de los Robux en inglés y español")
 async def robux_prices(interaction: discord.Interaction):
