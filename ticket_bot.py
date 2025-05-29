@@ -873,72 +873,8 @@ async def profile(interaction: discord.Interaction, user: discord.Member = None)
     embed.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
 
     await interaction.response.send_message(embed=embed)
-@tree.command(
-    name="stock",
-    description="📦 Muestra el stock actual / Show current stock",
-    guild=discord.Object(id=server_configs[0])
-)
-async def stock(interaction: discord.Interaction):
-    embed = discord.Embed(
-        title="📦 Stock Actual / Current Stock",
-        color=discord.Color.blue()
-    )
-    embed.add_field(name="🎮 Robux", value=f"{bot.robux_stock} unidades", inline=False)
-    embed.add_field(name="💰 Coins", value=f"{bot.coins_stock} unidades", inline=False)
-    embed.add_field(name="🍉 Fruta", value=f"{bot.fruit_stock} unidades", inline=False)
-    embed.set_footer(text="Bot de ventas / Sales Bot")
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
     
-
-@bot.tree.command(
-    name="upstock",
-    description="⬆️ Aumenta el stock de un producto específico / Increase stock of a product",
-    guild=discord.Object(id=server_configs[0])
-)
-@discord.app_commands.describe(producto="Producto a aumentar (robux, coins, fruit)", cantidad="Cantidad a añadir")
-async def upstock(interaction: discord.Interaction, producto: str, cantidad: int):
-    if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
-        return
-
-    producto = producto.lower()
-    valid_products = {"robux", "coins", "fruit"}
-    if producto not in valid_products:
-        await interaction.response.send_message("❌ Producto inválido. Usa robux, coins o fruit. / Invalid product. Use robux, coins or fruit.", ephemeral=True)
-        return
-
-    if cantidad <= 0:
-        await interaction.response.send_message("❌ La cantidad debe ser mayor que 0. / Amount must be greater than 0.", ephemeral=True)
-        return
-
-    # Leer JSON
-    with open("data.json", "r") as f:
-        data = json.load(f)
-
-    # Campo correspondiente en JSON
-    key = f"{producto}_stock"
-
-    # Sumar cantidad
-    if key in data:
-        data[key] += cantidad
-    else:
-        data[key] = cantidad  # Por si no existiera
-
-    # Guardar JSON
-    with open("data.json", "w") as f:
-        json.dump(data, f, indent=4)
-
-    embed = discord.Embed(
-        title="📈 Stock actualizado / Stock updated",
-        description=f"Producto: **{producto.capitalize()}**\nCantidad añadida: **{cantidad}**\nNuevo stock: **{data[key]}**",
-        color=0x00FF00
-    )
-
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-
 @bot.tree.command(
     name="promos",
     description="📢 Muestra las promociones activas y notifica a todos / Show active promotions and notify everyone",
@@ -969,6 +905,46 @@ async def promos(interaction: discord.Interaction):
 
     # Envía mensaje con @everyone visible para todos y embed bonito
     await interaction.response.send_message(content="@everyone", embed=embed, ephemeral=False)
+
+@tree.command(
+    name="removercompra",
+    description="🗑️ Remueve una compra manualmente de un usuario / Remove a user's purchase manually",
+    guild=discord.Object(id=server_configs[0])
+)
+@discord.app_commands.describe(
+    user="Usuario a quien se le removerá la compra",
+    producto="Producto a remover",
+    cantidad="Cantidad a remover"
+)
+@discord.app_commands.checks.has_permissions(administrator=True)
+async def removercompra(interaction: discord.Interaction, user: discord.User, producto: str, cantidad: int):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
+        return
+
+    # Verificamos que la compra exista
+    user_id = str(user.id)
+
+    if user_id not in data_manager.data["user_purchases"]:
+        await interaction.response.send_message(f"❌ El usuario {user.mention} no tiene compras registradas. / This user has no purchases registered.", ephemeral=True)
+        return
+
+    compras = data_manager.data["user_purchases"][user_id]
+    encontrado = False
+    for compra in compras:
+        if compra["producto"].lower() == producto.lower() and compra["cantidad"] == cantidad:
+            compras.remove(compra)
+            encontrado = True
+            break
+
+    if not encontrado:
+        await interaction.response.send_message(f"❌ No se encontró la compra con ese producto y cantidad para {user.mention}. / Purchase not found for that product and amount.", ephemeral=True)
+        return
+
+    # Guardar cambios
+    data_manager.save()
+
+    await interaction.response.send_message(f"✅ Compra removida correctamente para {user.mention}.\nProducto: {producto}\nCantidad: {cantidad}", ephemeral=True)
 
 
 @bot.tree.command(name="g", description="🔗 Muestra el grupo de Roblox para la compra de Robux")
