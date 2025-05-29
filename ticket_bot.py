@@ -983,27 +983,29 @@ async def removercompra(interaction: discord.Interaction, user: discord.User, pr
 
 @tree.command(
     name="g",
-    description="🔗 Muestra el grupo de Roblox para recibir Robux / Show Roblox group for receiving Robux",
+    description="🔗 Muestra el grupo de Roblox para recibir Robux / Show Roblox group to receive Robux",
     guild=discord.Object(id=server_configs[0])
 )
 async def grupo_roblox(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Comando no disponible aquí. / Command not available here.",
+            ephemeral=True
+        )
         return
 
     url_grupo = "https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about"
 
     embed = discord.Embed(
-        title="🎮 Grupo Oficial de Roblox / Official Roblox Group",
+        title="🔗 Grupo de Roblox / Roblox Group",
         description=(
-            f"Debes estar **unido a nuestro grupo** por al menos **15 días** para poder recibir Robux.\n\n"
-            f"You must be **a member of our group** for at least **15 days** to receive Robux.\n\n"
-            f"🔗 [Haz clic aquí para unirte / Click here to join]({url_grupo})"
+            "🎮 Para recibir **Robux** debes estar **unido a nuestro grupo de Roblox** por al menos **15 días**.\n"
+            "🎮 To receive **Robux**, you must be **in our Roblox group** for at least **15 days**.\n\n"
+            f"👉 [Únete al grupo / Join the group]({url_grupo})"
         ),
-        color=0x3498db
+        color=0x00b0f4
     )
     embed.set_thumbnail(url="https://tr.rbxcdn.com/835e3403998e1cf5207b0fd9445dfb86/150/150/Image/Png")
-    embed.set_footer(text="Gracias por tu compra / Thank you for your purchase")
+    embed.set_footer(text="Sistema de ventas Robux / Robux Sales System")
 
     await interaction.response.send_message(embed=embed, ephemeral=False)
-
