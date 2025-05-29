@@ -375,7 +375,7 @@ async def ventahecha(interaction: discord.Interaction):
                     f"💳 **Método de Pago / Payment Method:** {metodo}"
                 ),
                 color=discord.Color.gold(),
-                timestamp=datetime.datetime.utcnow()
+                timestamp=datetime.utcnow()
             )
             embed.set_footer(text="Sistema de Ventas | Sales System", icon_url=bot.user.display_avatar.url)
 
@@ -747,7 +747,7 @@ async def rules(interaction: discord.Interaction):
             "📌 Presiona un botón abajo para navegar."
         ),
         color=discord.Color.orange(),
-        timestamp=datetime.datetime.utcnow()
+        timestamp=datetime.utcnow()
     )
     embed.set_footer(text="Sistema de Seguridad y Reglas / Rules & Safe System", icon_url=interaction.client.user.display_avatar.url)
     embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")
@@ -792,7 +792,7 @@ async def robux_prices(interaction: discord.Interaction):
             "> 🎯 Compra mínima: 200 Robux"
         ),
         color=discord.Color.blue(),
-        timestamp=datetime.datetime.utcnow()
+        timestamp=datetime.utcnow()
     )
     embed.set_footer(text="Robux Info | Miluty", icon_url=bot.user.display_avatar.url)
     await interaction.response.send_message(embed=embed)
@@ -812,7 +812,7 @@ async def ranking(interaction: discord.Interaction):
     embed = discord.Embed(
         title="🏆 Ranking de Compras / Purchase Ranking",
         color=discord.Color.gold(),
-        timestamp=datetime.datetime.utcnow()
+        timestamp=datetime.utcnow()
     )
 
     description = ""
@@ -865,7 +865,7 @@ async def profile(interaction: discord.Interaction, user: discord.Member = None)
     embed = discord.Embed(
         title=f"Perfil de Compras / Purchase Profile — {user.display_name}",
         color=discord.Color.blue(),
-        timestamp=datetime.datetime.utcnow()
+        timestamp=datetime.utcnow()
     )
 
     embed.add_field(name="🛒 Total de compras / Total Purchases", value=str(total_purchases), inline=False)
@@ -1003,7 +1003,7 @@ async def grupo(interaction: discord.Interaction):
             "[Haz clic aquí para entrar al grupo / Click here to join the group](https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about)"
         ),
         color=0x9146FF,  # Color púrpura Roblox
-        timestamp=discord.utils.utcnow()
+        timestamp=datetime.utcnow()
     )
     embed.set_footer(text=f"Solicitado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
     
@@ -1105,7 +1105,7 @@ class GiveawayModal(ui.Modal, title="🎉 Crear Sorteo / Create Giveaway"):
                 "Gracias por participar! / Thanks for joining!"
             ),
             color=0xFF4500,
-            timestamp=discord.utils.utcnow()
+            timestamp=datetime.utcnow()
         )
         ended_embed.set_footer(text=f"Creado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
         await giveaway_msg.edit(embed=ended_embed)
