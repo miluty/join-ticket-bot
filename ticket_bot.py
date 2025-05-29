@@ -6,7 +6,7 @@ import asyncio
 import random
 import re
 from discord.ui import View, Button
-from discord import app_commands
+from discord import ui, app_commands
 from discord.ext import commands
 
 intents = discord.Intents.all()
