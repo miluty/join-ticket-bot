@@ -1112,94 +1112,53 @@ async def giveaway(interaction: discord.Interaction):
 
 
 
-class RTPModal(ui.Modal, title="📨 Enviar mensaje a usuario random / Send message to random user"):
-    contenido = ui.TextInput(
-        label="Mensaje para enviar / Message to send",
+
+class RTPModal(discord.ui.Modal, title="Mensaje para usuario random"):
+    mensaje = discord.ui.TextInput(
+        label="Mensaje que quieres enviar",
         style=discord.TextStyle.paragraph,
-        placeholder="Escribe el mensaje que quieres enviar...",
+        placeholder="Escribe aquí el mensaje para enviar al usuario random",
+        max_length=1000,
         required=True,
-        max_length=500
     )
-    foto_url = ui.TextInput(
-        label="URL de imagen (opcional) / Image URL (optional)",
-        style=discord.TextStyle.short,
-        placeholder="https://",
-        required=False,
-        max_length=200
-    )
+
+    def __init__(self, role: discord.Role, interaction: discord.Interaction):
+        super().__init__()
+        self.role = role
+        self.interaction = interaction
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # Buscar miembros con el rol
+        miembros_con_rol = [member for member in self.interaction.guild.members if self.role in member.roles and not member.bot]
+        
+        if not miembros_con_rol:
+            await interaction.response.send_message(f"❌ No hay miembros con el rol {self.role.mention}.", ephemeral=True)
+            return
+
+        usuario_random = random.choice(miembros_con_rol)
+
+        try:
+            await usuario_random.send(f"📨 Mensaje aleatorio recibido:\n\n{self.mensaje.value}")
+            await interaction.response.send_message(f"✅ Mensaje enviado a {usuario_random.mention} correctamente.", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.response.send_message(f"❌ No se pudo enviar mensaje privado a {usuario_random.mention}.", ephemeral=True)
+        except Exception as e:
+            await interaction.response.send_message(f"❌ Error al enviar mensaje: {e}", ephemeral=True)
 
 @tree.command(
     name="rtp",
-    description="📤 Envía un mensaje privado a un usuario random con un rol específico / Send a private message to a random user with a specific role",
-    guild=Object(id=server_configs[0])
+    description="📩 Envía un mensaje a un usuario aleatorio con un rol específico",
+    guild=discord.Object(id=server_configs[0])
 )
 @app_commands.describe(
-    role="Rol del usuario objetivo / Target user role"
+    role="Selecciona el rol para elegir usuario aleatorio"
 )
-async def rtp(interaction: Interaction, role: discord.Role):
+async def rtp(interaction: discord.Interaction, role: discord.Role):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible aquí / Command not available here.", ephemeral=True)
+        await interaction.response.send_message("❌ Comando no disponible en este servidor.", ephemeral=True)
         return
-    
-    # Mostrar modal para que el usuario escriba el mensaje y opcionalmente la foto URL
-    modal = RTPModal()
 
-    async def on_modal_submit(modal_interaction: Interaction):
-        mensaje = modal.contenido.value
-        url_foto = modal.foto_url.value.strip()
-
-        # Filtrar miembros con el rol que no sean bots
-        miembros_rol = [m for m in interaction.guild.members if role in m.roles and not m.bot]
-
-        if not miembros_rol:
-            await modal_interaction.response.send_message(f"⚠️ No hay usuarios con el rol {role.name}.", ephemeral=True)
-            return
-        
-        elegido = random.choice(miembros_rol)
-
-        # Decidir con probabilidad del 20% crear ticket o enviar DM
-        if random.random() < 0.2:
-            # Crear canal ticket con mensaje y foto
-            categoria_ticket = discord.utils.get(interaction.guild.categories, id=ticket_category_id)
-            if not categoria_ticket:
-                await modal_interaction.response.send_message("❌ No encontré la categoría de tickets.", ephemeral=True)
-                return
-            
-            nombre_canal = f"ticket-rtp-{elegido.name}".lower()[:90]
-            canal_ticket = await interaction.guild.create_text_channel(
-                nombre_canal, category=categoria_ticket, topic=f"Ticket RTP generado para {elegido.mention}"
-            )
-
-            embed_ticket = Embed(
-                title="📩 Nuevo Ticket RTP / New RTP Ticket",
-                description=f"**Mensaje enviado:**\n{mensaje}\n\n**Usuario seleccionado:** {elegido.mention}\n**Rol objetivo:** {role.name}",
-                color=0x00FF00,
-                timestamp=discord.utils.utcnow()
-            )
-            if url_foto and (url_foto.startswith("http://") or url_foto.startswith("https://")):
-                embed_ticket.set_image(url=url_foto)
-
-            await canal_ticket.send(embed=embed_ticket)
-
-            # Confirmar al usuario que creó el ticket
-            await modal_interaction.response.send_message(f"✅ Ticket creado en {canal_ticket.mention}.", ephemeral=True)
-        else:
-            # Enviar mensaje DM al usuario random
-            embed_dm = Embed(
-                title="📨 Mensaje aleatorio recibido / You received a random message",
-                description=mensaje,
-                color=0x3498DB,
-                timestamp=discord.utils.utcnow()
-            )
-            if url_foto and (url_foto.startswith("http://") or url_foto.startswith("https://")):
-                embed_dm.set_image(url=url_foto)
-            try:
-                await elegido.send(embed=embed_dm)
-                await modal_interaction.response.send_message(f"✅ Mensaje enviado a {elegido.mention}.", ephemeral=True)
-            except discord.Forbidden:
-                await modal_interaction.response.send_message(f"❌ No pude enviar mensaje a {elegido.mention} (probablemente tiene DMs cerrados).", ephemeral=True)
-
-    modal.on_submit = on_modal_submit
+    modal = RTPModal(role=role, interaction=interaction)
     await interaction.response.send_modal(modal)
 
 
