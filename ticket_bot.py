@@ -965,18 +965,44 @@ async def removercompra(interaction: discord.Interaction, user: discord.User, pr
 
     await interaction.response.send_message(f"✅ Compra removida correctamente para {user.mention}.\nProducto: {producto}\nCantidad: {cantidad}", ephemeral=True)
 
-@tree.command(
+@bot.tree.command(
     name="g",
     description="🔗 Muestra el grupo de Roblox para la compra de Robux",
-    guild=discord.Object(id=1317658154397466715)  # Cambia al ID de tu servidor
+    guild=discord.Object(id=server_configs[0])  # Limitar a tu servidor
 )
 async def grupo_roblox(interaction: discord.Interaction):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message(
+            "❌ Comando no disponible en este servidor.",
+            ephemeral=True
+        )
+        return
+
     url_grupo = "https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about"
-    mensaje = (
-        "🎮 Para recibir Robux debes estar **unido a nuestro grupo de Roblox** por al menos **15 días**:\n"
-        f"> {url_grupo}"
+    embed = discord.Embed(
+        title="🎮 Únete al grupo oficial de Roblox CoinsVerse",
+        description=(
+            "**¿Quieres recibir Robux?**\n"
+            "Debes estar **unido a nuestro grupo de Roblox** por al menos **15 días** para poder hacer compras.\n\n"
+            f"[👉 Haz clic aquí para unirte al grupo Roblox CoinsVerse](<{url_grupo}>)"
+        ),
+        color=0x9146FF,  # Color morado estilo Roblox
+        timestamp=discord.utils.utcnow()
     )
-    await interaction.response.send_message(mensaje)
+    embed.set_thumbnail(url="https://i.imgur.com/4B7iN5L.png")  # Logo Roblox/CoinsVerse
+    embed.set_footer(text="CoinsVerse - ¡Gracias por ser parte de nuestra comunidad!")
+    
+    # Botones para interacción (opcional)
+    view = View()
+    view.add_item(
+        Button(
+            label="Ir al grupo Roblox",
+            url=url_grupo,
+            style=discord.ButtonStyle.link
+        )
+    )
+
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 
 @bot.event
