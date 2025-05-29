@@ -639,7 +639,13 @@ async def ruleta(interaction: discord.Interaction, premio: str):
 
     await interaction.response.send_message(embed=embed)
     
-@bot.tree.command(name="anuncio", description="📢 Envía un anuncio con @everyone y opcionalmente una imagen")
+
+
+@tree.command(
+    name="anuncio",
+    description="📢 Envía un anuncio con @everyone y opcionalmente una imagen",
+    guild=discord.Object(id=server_configs[0])
+)
 @app_commands.describe(
     canal="Canal donde se enviará el anuncio",
     mensaje="Contenido del anuncio",
@@ -660,13 +666,22 @@ async def anuncio(
         title="📢 ¡ANUNCIO IMPORTANTE!",
         description=mensaje,
         color=discord.Color.orange(),
-        datetime.utcnow()
-
+        timestamp=datetime.utcnow()
     )
-
-    embed.add_field(name="🔔 Atención:", value="Este mensaje es para **todos** los miembros del servidor.", inline=False)
-    embed.add_field(name="📅 Fecha del anuncio:", value=f"{datetime.datetime.utcnow().strftime('%d/%m/%Y %H:%M UTC')}", inline=True)
-    embed.set_footer(text=f"Anuncio enviado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
+    embed.add_field(
+        name="🔔 Atención:",
+        value="Este mensaje es para **todos** los miembros del servidor.",
+        inline=False
+    )
+    embed.add_field(
+        name="📅 Fecha del anuncio:",
+        value=f"{datetime.utcnow().strftime('%d/%m/%Y %H:%M UTC')}",
+        inline=True
+    )
+    embed.set_footer(
+        text=f"Anuncio enviado por {interaction.user}",
+        icon_url=interaction.user.display_avatar.url
+    )
     embed.set_thumbnail(url="https://i.imgur.com/jNNT4LE.png")
 
     if imagen:
@@ -675,7 +690,14 @@ async def anuncio(
         embed.set_image(url="https://i.imgur.com/UYI9HOq.png")
 
     await canal.send(content="@everyone", embed=embed)
-    await interaction.response.send_message(f"✅ Anuncio enviado correctamente en {canal.mention}", ephemeral=True)
+    await interaction.response.send_message(
+        f"✅ Anuncio enviado correctamente en {canal.mention}",
+        ephemeral=True
+    )
+
+
+
+
     
 @bot.tree.command(name="p", description="💸 Ver los pases disponibles para pagar con Robux")
 async def pases(interaction: discord.Interaction):
