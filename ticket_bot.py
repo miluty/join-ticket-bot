@@ -25,21 +25,6 @@ ticket_data = {}      # Para guardar datos de cada ticket
 # Asumiendo que defines el stock de Robux globalmente
 bot.robux_stock = 10000000 # Stock inicial, ajusta según necesites
 
-@bot.event
-async def on_ready():
-    await bot.wait_until_ready()
-    
-    # Cambiar estado
-    activity = discord.Activity(type=discord.ActivityType.watching, name="🎯 Managing Coinverse 💱")
-    await bot.change_presence(activity=activity)
-
-    try:
-        guild = discord.Object(id=1317658154397466715)  # Cambia por el ID de tu servidor
-        synced = await bot.tree.sync(guild=guild)  # Sincroniza SOLO para este servidor
-        print(f"✅ Comandos sincronizados correctamente en guild: {len(synced)}")
-    except Exception as e:
-        print(f"❌ Error al sincronizar comandos: {e}")
-
 class DataManager:
     def __init__(self):
         self.data = {
@@ -1006,4 +991,17 @@ async def grupo_roblox(interaction: discord.Interaction):
     embed.set_footer(text="Coinverse | Seguridad y confianza - Safe & Trusted")
 
     await interaction.response.send_message(embed=embed, ephemeral=False)
+@bot.event
+async def on_ready():
+    await bot.wait_until_ready()
+    
+    # Cambiar estado
+    activity = discord.Activity(type=discord.ActivityType.watching, name="🎯 Managing Coinverse 💱")
+    await bot.change_presence(activity=activity)
 
+    try:
+        guild = discord.Object(id=1317658154397466715)  # Cambia por el ID de tu servidor
+        synced = await bot.tree.sync(guild=guild)  # Sincroniza SOLO para este servidor
+        print(f"✅ Comandos sincronizados correctamente en guild: {len(synced)}")
+    except Exception as e:
+        print(f"❌ Error al sincronizar comandos: {e}")
