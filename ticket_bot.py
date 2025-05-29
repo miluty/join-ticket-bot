@@ -1018,8 +1018,8 @@ class GiveawayModal(ui.Modal, title="Crear un Sorteo / Create a Giveaway"):
                     users = await reaction.users().flatten()
                     break
 
-            # Filtrar bots y el autor del sorteo
-            users = [u for u in users if not u.bot and u != bot.user]
+            # Filtrar bots y el bot mismo
+            users = [u for u in users if not u.bot and u != interaction.client.user]
 
             if len(users) == 0:
                 await canal.send("❌ No hubo participantes para el sorteo. / No participants for the giveaway.")
@@ -1045,6 +1045,7 @@ class GiveawayModal(ui.Modal, title="Crear un Sorteo / Create a Giveaway"):
         except Exception as e:
             await interaction.response.send_message(f"❌ Error al crear el sorteo: {e}", ephemeral=True)
 
+
 @bot.tree.command(name="giveaway", description="🎉 Crea un sorteo con opciones avanzadas / Create an advanced giveaway")
 async def giveaway(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
@@ -1056,32 +1057,29 @@ async def giveaway(interaction: discord.Interaction):
 
 
     
-@bot.tree.command(
-    name="grupo",
-    description="Entra para sorteos y compras de Robux / Join for giveaways and Robux buys"
-)
+@bot.tree.command(name="grupo", description="🔗 Muestra el grupo de Roblox para Robux y sorteos / Show Roblox group for Robux & giveaways")
 async def grupo(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message(
-            "❌ Comando no disponible en este servidor. / Command not available here.",
-            ephemeral=True
-        )
+        await interaction.response.send_message("❌ Comando no disponible en este servidor. / Command not available in this server.", ephemeral=True)
         return
 
     url_grupo = "https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about"
     embed = discord.Embed(
-        title="🎮 Únete a nuestro grupo de Roblox / Join our Roblox group",
+        title="🎮 Grupo Oficial CoinsVerse / Official CoinsVerse Group",
         description=(
-            "Para comprar Robux o participar en sorteos, debes estar en nuestro grupo:\n"
-            f"[CoinsVerse Roblox Group]({url_grupo})\n\n"
-            "To buy Robux or join giveaways, you must be in our group."
+            "🔹 Para recibir Robux, debes estar unido a nuestro grupo de Roblox por al menos 15 días.\n"
+            "🔹 También participa en nuestros sorteos exclusivos para miembros.\n\n"
+            "🔗 Únete aquí: [CoinsVerse Roblox Group](" + url_grupo + ")\n\n"
+            "🎮 To receive Robux, you must be part of our Roblox group for at least 15 days.\n"
+            "🎮 Also participate in our exclusive giveaways for members.\n\n"
+            "🔗 Join here: [CoinsVerse Roblox Group](" + url_grupo + ")"
         ),
-        color=0x1ABC9C
+        color=0x9146FF
     )
-    embed.set_thumbnail(url="https://cdn.discordapp.com/icons/1317658154397466715/a_icon.png")  # Cambia por el logo de tu servidor o grupo
-    embed.set_footer(text="CoinsVerse Team | Equipo CoinsVerse")
+    embed.set_footer(text="CoinsVerse | Comunidad Roblox | Roblox Community")
 
     await interaction.response.send_message(embed=embed, ephemeral=False)
+
 
 
 
