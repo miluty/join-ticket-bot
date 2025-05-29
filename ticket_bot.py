@@ -299,7 +299,7 @@ class PanelView(discord.ui.View):
         await interaction.response.send_modal(SaleModal(tipo, self.data_manager))
 
 
-@bot.tree.command(name="panel", description="📩 Muestra el panel de tickets / Show the ticket panel")
+@tree.command(name="panel", description="📩 Muestra el panel de tickets / Show the ticket panel")
 async def panel(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
         await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
@@ -308,18 +308,24 @@ async def panel(interaction: discord.Interaction):
     embed = discord.Embed(
         title="🎫 Sistema de Tickets de Venta / Sales Ticket System",
         description=(
-            "Bienvenido al sistema de tickets. / Welcome to the ticket system.\n\n"
-            "🛍️ Selecciona el producto que deseas comprar. / Select the product you want to buy.\n"
-            "💳 Métodos aceptados: **PayPal, Robux y Gitcard**.\n"
-            "💳 Accepted methods: **PayPal, Robux and Gitcard**.\n\n"
-            "Presiona el menú desplegable para continuar. / Use the dropdown menu to continue."
+            "👋 **Bienvenido al sistema de tickets** / Welcome to the ticket system\n\n"
+            "🛍️ Selecciona el producto que deseas comprar / Select the product you want to buy\n"
+            "💳 Métodos aceptados / Accepted methods:\n"
+            "**• PayPal**\n"
+            "**• Robux**\n"
+            "**• Giftcard**\n\n"
+            "📩 Pulsa el menú desplegable para continuar / Use the dropdown menu to continue."
         ),
         color=discord.Color.green(),
-        timestamp=datetime.datetime.utcnow()
+        timestamp=datetime.utcnow()  # ← CORREGIDO
     )
-    embed.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
+    embed.set_footer(
+        text="Sistema de Tickets | Ticket System",
+        icon_url=bot.user.display_avatar.url
+    )
 
     await interaction.response.send_message(embed=embed, view=PanelView(data_manager))
+
 
 @bot.tree.command(name="ventahecha", description="✅ Confirma la venta y cierra el ticket / Confirm sale and close ticket")
 async def ventahecha(interaction: discord.Interaction):
