@@ -878,12 +878,14 @@ class DescuentoModal(ui.Modal, title="🧮 Crear Anuncio de Descuento / Create D
     producto = ui.TextInput(
         label="Producto (Fruta, Robux, Coins)",
         placeholder="Ejemplo: Robux",
-        required=True
+        required=True,
+        max_length=20
     )
     descuento = ui.TextInput(
         label="Porcentaje de descuento / Discount %",
         placeholder="Ejemplo: 15",
-        required=True
+        required=True,
+        max_length=4
     )
     canal_id = ui.TextInput(
         label="ID del canal destino / Destination channel ID",
@@ -899,10 +901,18 @@ class DescuentoModal(ui.Modal, title="🧮 Crear Anuncio de Descuento / Create D
                 return
 
             porcentaje = self.descuento.value.strip()
+            if not porcentaje.isdigit() or not (1 <= int(porcentaje) <= 100):
+                await interaction.response.send_message("❌ Porcentaje inválido (1-100).", ephemeral=True)
+                return
+
             producto = self.producto.value.strip().capitalize()
 
+            title = f"💸 {producto}: {porcentaje}% OFF"
+            if len(title) > 45:
+                title = title[:42] + "..."
+
             embed = discord.Embed(
-                title=f"💸 ¡Descuento en {producto}! / {producto} Discount!",
+                title=title,
                 description=f"🎉 ¡{porcentaje}% de descuento por tiempo limitado! / {porcentaje}% OFF for a limited time!",
                 color=0xFFD700
             )
@@ -913,11 +923,11 @@ class DescuentoModal(ui.Modal, title="🧮 Crear Anuncio de Descuento / Create D
             await interaction.response.send_message("✅ Anuncio enviado correctamente / Announcement sent successfully", ephemeral=True)
 
         except Exception as e:
-            await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
+            await interaction.response.send_message(f"❌ Error inesperado: {e}", ephemeral=True)
 
 @tree.command(
     name="anuncio_descuento",
-    description="💸 Crea un anuncio decorado de descuento para un producto / Create a styled discount announcement",
+    description="💸 Crea un anuncio decorado de descuento / Create a styled discount announcement",
     guild=discord.Object(id=server_configs[0])
 )
 async def anuncio_descuento(interaction: discord.Interaction):
