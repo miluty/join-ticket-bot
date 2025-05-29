@@ -968,99 +968,15 @@ async def removercompra(interaction: discord.Interaction, user: discord.User, pr
 
 
 
-class GiveawayModal(discord.ui.Modal, title="🎉 Crear Sorteo / Create Giveaway"):
-    giveaway_title = discord.ui.TextInput(
-        label="Título del sorteo / Giveaway title",
-        placeholder="Ej: Sorteo de Robux 5000!",
-        max_length=45,
-    )
-    duration = discord.ui.TextInput(
-        label="Duración en minutos / Duration (minutes)",
-        placeholder="Ej: 30",
-        max_length=4,
-        min_length=1,
-    )
-    winners = discord.ui.TextInput(
-        label="Número de ganadores / Number of winners",
-        placeholder="Ej: 1",
-        max_length=2,
-        min_length=1,
-    )
-    channel_id = discord.ui.TextInput(
-        label="ID del canal donde se anunciará / Channel ID to announce",
-        placeholder="Ej: 123456789012345678",
-        max_length=20,
-        min_length=18,
-    )
-    description = discord.ui.TextInput(
-        label="Descripción / Description",
-        style=discord.TextStyle.paragraph,
-        placeholder="Describe el sorteo aquí...",
-        required=False,
-        max_length=200,
-    )
-
-    async def on_submit(self, interaction: discord.Interaction):
-        # Validaciones básicas
-        try:
-            duracion = int(self.duration.value)
-            ganadores = int(self.winners.value)
-            canal_id = int(self.channel_id.value)
-        except ValueError:
-            await interaction.response.send_message(
-                "❌ Duración, ganadores y canal deben ser números válidos.",
-                ephemeral=True
-            )
-            return
-        
-        canal = interaction.guild.get_channel(canal_id)
-        if not canal:
-            await interaction.response.send_message("❌ No se encontró el canal en este servidor.", ephemeral=True)
-            return
-
-        # Construir embed del sorteo
-        embed = discord.Embed(
-            title=f"🎉 {self.giveaway_title.value}",
-            description=self.description.value or "¡Participa reaccionando con 🎉 para ganar!",
-            color=0x00FF00,
-            timestamp=discord.utils.utcnow()
-        )
-        embed.set_footer(text=f"Sorteo por {interaction.user}", icon_url=interaction.user.display_avatar.url)
-        embed.add_field(name="Duración", value=f"{duracion} minutos", inline=True)
-        embed.add_field(name="Ganadores", value=str(ganadores), inline=True)
-
-        mensaje = await canal.send("@everyone ¡Nuevo sorteo! 🎉", embed=embed)
-        await mensaje.add_reaction("🎉")
-
-        # Confirmación al que creó el sorteo
-        await interaction.response.send_message(
-            f"✅ Sorteo creado en {canal.mention} con duración de {duracion} minutos y {ganadores} ganador(es).",
-            ephemeral=True
-        )
-
-        # Aquí puedes añadir la lógica para que después de la duración seleccione ganadores y anuncie,
-        # usando asyncio.sleep(duracion * 60), etc.
-
-@tree.command(name="giveaway", description="🎉 Crea un sorteo con opciones avanzadas / Create an advanced giveaway")
-async def giveaway(interaction: discord.Interaction):
-    if interaction.guild_id not in server_configs:
-        await interaction.response.send_message(
-            "❌ Comando no disponible en este servidor. / Command not available here.",
-            ephemeral=True
-        )
-        return
-
-    modal = GiveawayModal()
-    await interaction.response.send_modal(modal)
-
-
-
-    
-@tree.command(name="grupo", description="🔗 Muestra el grupo de Roblox para Robux / Show Roblox group for Robux")
+@tree.command(
+    name="grupo",
+    description="🔗 Muestra el grupo de Roblox para Robux / Show Roblox group for Robux",
+    guild=discord.Object(id=server_configs[0])
+)
 async def grupo(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
         await interaction.response.send_message(
-            "❌ Comando no disponible en este servidor. / Command not available here.",
+            "❌ Comando no disponible aquí. / Command not available here.",
             ephemeral=True
         )
         return
@@ -1078,7 +994,6 @@ async def grupo(interaction: discord.Interaction):
     embed.set_footer(text=f"Solicitado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
     
     await interaction.response.send_message(embed=embed)
-
 
 
 
