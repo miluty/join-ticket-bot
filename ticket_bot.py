@@ -968,117 +968,116 @@ async def removercompra(interaction: discord.Interaction, user: discord.User, pr
 
 
 
-class GiveawayModal(ui.Modal, title="Crear un Sorteo / Create a Giveaway"):
-    premio = ui.TextInput(label="Premio / Prize", placeholder="Ejemplo: 1000 Robux o 50000 Coins", max_length=100)
-    duracion = ui.TextInput(label="Duración en minutos / Duration (minutes)", placeholder="Ejemplo: 30", max_length=4)
-    ganadores = ui.TextInput(label="Número de ganadores / Number of winners", placeholder="Ejemplo: 1", max_length=2)
-    canal_id = ui.TextInput(label="ID del canal para sorteo / Giveaway channel ID", placeholder="Ejemplo: 123456789012345678", max_length=20)
+class GiveawayModal(discord.ui.Modal, title="🎉 Crear Sorteo / Create Giveaway"):
+    giveaway_title = discord.ui.TextInput(
+        label="Título del sorteo / Giveaway title",
+        placeholder="Ej: Sorteo de Robux 5000!",
+        max_length=45,
+    )
+    duration = discord.ui.TextInput(
+        label="Duración en minutos / Duration (minutes)",
+        placeholder="Ej: 30",
+        max_length=4,
+        min_length=1,
+    )
+    winners = discord.ui.TextInput(
+        label="Número de ganadores / Number of winners",
+        placeholder="Ej: 1",
+        max_length=2,
+        min_length=1,
+    )
+    channel_id = discord.ui.TextInput(
+        label="ID del canal donde se anunciará / Channel ID to announce",
+        placeholder="Ej: 123456789012345678",
+        max_length=20,
+        min_length=18,
+    )
+    description = discord.ui.TextInput(
+        label="Descripción / Description",
+        style=discord.TextStyle.paragraph,
+        placeholder="Describe el sorteo aquí...",
+        required=False,
+        max_length=200,
+    )
 
     async def on_submit(self, interaction: discord.Interaction):
+        # Validaciones básicas
         try:
-            duracion = int(self.duracion.value)
-            ganadores = int(self.ganadores.value)
-            canal = interaction.guild.get_channel(int(self.canal_id.value))
-            premio = self.premio.value.strip()
-
-            if duracion <= 0 or ganadores <= 0:
-                await interaction.response.send_message("❌ La duración y el número de ganadores deben ser mayores a 0. / Duration and winners must be greater than 0.", ephemeral=True)
-                return
-            if canal is None:
-                await interaction.response.send_message("❌ Canal inválido. / Invalid channel.", ephemeral=True)
-                return
-
-            embed = discord.Embed(
-                title="🎉 🎊 ¡Sorteo iniciado! / Giveaway Started! 🎊 🎉",
-                description=(
-                    f"**Premio / Prize:** {premio}\n"
-                    f"**Duración / Duration:** {duracion} minutos\n"
-                    f"**Ganadores / Winners:** {ganadores}\n\n"
-                    f"Reacciona con 🎉 para participar!\n"
-                    f"React with 🎉 to enter!"
-                ),
-                color=0xFFD700,
-                timestamp=discord.utils.utcnow()
+            duracion = int(self.duration.value)
+            ganadores = int(self.winners.value)
+            canal_id = int(self.channel_id.value)
+        except ValueError:
+            await interaction.response.send_message(
+                "❌ Duración, ganadores y canal deben ser números válidos.",
+                ephemeral=True
             )
-            embed.set_footer(text=f"Sorteo creado por {interaction.user.display_name} / Giveaway by {interaction.user.display_name}")
+            return
+        
+        canal = interaction.guild.get_channel(canal_id)
+        if not canal:
+            await interaction.response.send_message("❌ No se encontró el canal en este servidor.", ephemeral=True)
+            return
 
-            message = await canal.send("@everyone", embed=embed)
-            await message.add_reaction("🎉")
+        # Construir embed del sorteo
+        embed = discord.Embed(
+            title=f"🎉 {self.giveaway_title.value}",
+            description=self.description.value or "¡Participa reaccionando con 🎉 para ganar!",
+            color=0x00FF00,
+            timestamp=discord.utils.utcnow()
+        )
+        embed.set_footer(text=f"Sorteo por {interaction.user}", icon_url=interaction.user.display_avatar.url)
+        embed.add_field(name="Duración", value=f"{duracion} minutos", inline=True)
+        embed.add_field(name="Ganadores", value=str(ganadores), inline=True)
 
-            await interaction.response.send_message(f"✅ Sorteo creado en {canal.mention} / Giveaway created in {canal.mention}", ephemeral=True)
+        mensaje = await canal.send("@everyone ¡Nuevo sorteo! 🎉", embed=embed)
+        await mensaje.add_reaction("🎉")
 
-            # Esperar la duración del sorteo
-            await asyncio.sleep(duracion * 60)
+        # Confirmación al que creó el sorteo
+        await interaction.response.send_message(
+            f"✅ Sorteo creado en {canal.mention} con duración de {duracion} minutos y {ganadores} ganador(es).",
+            ephemeral=True
+        )
 
-            # Recolectar participantes
-            message = await canal.fetch_message(message.id)
-            users = set()
-            for reaction in message.reactions:
-                if str(reaction.emoji) == "🎉":
-                    users = await reaction.users().flatten()
-                    break
+        # Aquí puedes añadir la lógica para que después de la duración seleccione ganadores y anuncie,
+        # usando asyncio.sleep(duracion * 60), etc.
 
-            # Filtrar bots y el bot mismo
-            users = [u for u in users if not u.bot and u != interaction.client.user]
-
-            if len(users) == 0:
-                await canal.send("❌ No hubo participantes para el sorteo. / No participants for the giveaway.")
-                return
-
-            # Seleccionar ganadores
-            winners = random.sample(users, min(ganadores, len(users)))
-
-            winners_mentions = ", ".join(winner.mention for winner in winners)
-
-            final_embed = discord.Embed(
-                title="🎉 Sorteo Finalizado / Giveaway Ended 🎉",
-                description=(
-                    f"**Premio / Prize:** {premio}\n"
-                    f"**Ganadores / Winners:** {winners_mentions}\n\n"
-                    "¡Felicidades! / Congratulations!"
-                ),
-                color=0x00FF00,
-                timestamp=discord.utils.utcnow()
-            )
-            await canal.send(embed=final_embed)
-
-        except Exception as e:
-            await interaction.response.send_message(f"❌ Error al crear el sorteo: {e}", ephemeral=True)
-
-
-@bot.tree.command(name="giveaway", description="🎉 Crea un sorteo con opciones avanzadas / Create an advanced giveaway")
+@tree.command(name="giveaway", description="🎉 Crea un sorteo con opciones avanzadas / Create an advanced giveaway")
 async def giveaway(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible en este servidor. / Command not available here.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Comando no disponible en este servidor. / Command not available here.",
+            ephemeral=True
+        )
         return
+
     modal = GiveawayModal()
     await interaction.response.send_modal(modal)
 
 
 
     
-@bot.tree.command(name="grupo", description="🔗 Muestra el grupo de Roblox para Robux y sorteos / Show Roblox group for Robux & giveaways")
+@tree.command(name="grupo", description="🔗 Muestra el grupo de Roblox para Robux / Show Roblox group for Robux")
 async def grupo(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible en este servidor. / Command not available in this server.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Comando no disponible en este servidor. / Command not available here.",
+            ephemeral=True
+        )
         return
 
-    url_grupo = "https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about"
     embed = discord.Embed(
-        title="🎮 Grupo Oficial CoinsVerse / Official CoinsVerse Group",
+        title="🎮 Grupo oficial de Roblox / Official Roblox Group",
         description=(
-            "🔹 Para recibir Robux, debes estar unido a nuestro grupo de Roblox por al menos 15 días.\n"
-            "🔹 También participa en nuestros sorteos exclusivos para miembros.\n\n"
-            "🔗 Únete aquí: [CoinsVerse Roblox Group](" + url_grupo + ")\n\n"
-            "🎮 To receive Robux, you must be part of our Roblox group for at least 15 days.\n"
-            "🎮 Also participate in our exclusive giveaways for members.\n\n"
-            "🔗 Join here: [CoinsVerse Roblox Group](" + url_grupo + ")"
+            "Únete a nuestro grupo para comprar Robux o participar en sorteos.\n"
+            "Join our group to buy Robux or join giveaways.\n\n"
+            "[Haz clic aquí para entrar al grupo / Click here to join the group](https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about)"
         ),
-        color=0x9146FF
+        color=0x9146FF,  # Color púrpura Roblox
+        timestamp=discord.utils.utcnow()
     )
-    embed.set_footer(text="CoinsVerse | Comunidad Roblox | Roblox Community")
-
-    await interaction.response.send_message(embed=embed, ephemeral=False)
+    embed.set_footer(text=f"Solicitado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
+    
+    await interaction.response.send_message(embed=embed)
 
 
 
