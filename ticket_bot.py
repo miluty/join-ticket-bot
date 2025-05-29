@@ -408,42 +408,75 @@ async def ventahecha(interaction: discord.Interaction):
         view=ConfirmView()
     )
 
-@bot.tree.command(name="cancelarventa", description="❌ Cancela el ticket de venta actual / Cancel current sale ticket")
+@tree.command(
+    name="cancelarventa",
+    description="❌ Cancela el ticket de venta actual / Cancel current sale ticket",
+    guild=discord.Object(id=server_configs[0])
+)
 async def cancelarventa(interaction: discord.Interaction):
+    # Validar servidor
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Comando no disponible aquí. / Command not available here.",
+            ephemeral=True
+        )
         return
 
-    if not interaction.channel.name.startswith(("fruit", "coins", "robux")):
-        await interaction.response.send_message("❌ Este comando solo funciona dentro de tickets de venta. / This command only works inside sale tickets.", ephemeral=True)
+    # Validar canal correcto para ticket de venta
+    channel_name = interaction.channel.name if interaction.channel else ""
+    if not channel_name.startswith(("fruit", "coins", "robux")):
+        await interaction.response.send_message(
+            "❌ Este comando solo funciona dentro de tickets de venta. / This command only works inside sale tickets.",
+            ephemeral=True
+        )
         return
 
+    # Obtener datos del ticket
     datos = ticket_data.get(interaction.channel.id)
     if not datos:
-        await interaction.response.send_message("❌ No se encontraron datos del ticket. / No ticket data found.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ No se encontraron datos del ticket. / No ticket data found.",
+            ephemeral=True
+        )
         return
 
     producto = datos.get("producto", "No especificado / Not specified")
     cantidad = datos.get("cantidad", "No especificada / Not specified")
-    tipo = None
-    if producto == "🎮 Robux": tipo = "robux"
-    elif producto == "💰 Coins": tipo = "coins"
-    elif producto == "🍉 Fruta": tipo = "fruit"
 
-    # Devolver stock si es robux
+    # Identificar tipo para devolver stock si aplica
+    tipo = None
+    if producto == "🎮 Robux":
+        tipo = "robux"
+    elif producto == "💰 Coins":
+        tipo = "coins"
+    elif producto == "🍉 Fruta":
+        tipo = "fruit"
+
+    # Devolver stock para robux (puedes agregar más tipos si quieres)
     if tipo == "robux":
         try:
             cantidad_num = int(cantidad)
             bot.robux_stock += cantidad_num
-        except:
+        except Exception as e:
+            # Opcional: loggear error si quieres
             pass
 
+    # Eliminar datos y cerrar canal
     ticket_data.pop(interaction.channel.id, None)
+
     await interaction.response.send_message(
-        f"❌ Ticket de venta cancelado y cerrado.\nProducto: {producto}\nCantidad: {cantidad}\n/ Sale ticket cancelled and closed.\nProduct: {producto}\nAmount: {cantidad}",
+        f"❌ Ticket de venta cancelado y cerrado.\n"
+        f"Producto: {producto}\nCantidad: {cantidad}\n"
+        "/ Sale ticket cancelled and closed.\n"
+        f"Product: {producto}\nAmount: {cantidad}",
         ephemeral=False
     )
-    await interaction.channel.delete()
+    # Intentar eliminar canal, con manejo básico de error
+    try:
+        await interaction.channel.delete()
+    except Exception:
+        pass
+
 
 
 
@@ -840,6 +873,93 @@ async def profile(interaction: discord.Interaction, user: discord.Member = None)
     embed.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
 
     await interaction.response.send_message(embed=embed)
+@tree.command(
+    name="stock",
+    description="📦 Muestra el stock actual / Show current stock",
+    guild=discord.Object(id=server_configs[0])
+)
+async def stock(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="📦 Stock Actual / Current Stock",
+        color=discord.Color.blue()
+    )
+    embed.add_field(name="🎮 Robux", value=f"{bot.robux_stock} unidades", inline=False)
+    embed.add_field(name="💰 Coins", value=f"{bot.coins_stock} unidades", inline=False)
+    embed.add_field(name="🍉 Fruta", value=f"{bot.fruit_stock} unidades", inline=False)
+    embed.set_footer(text="Bot de ventas / Sales Bot")
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+@tree.command(
+    name="upstock",
+    description="➕ Aumenta el stock de un producto / Increase stock of a product",
+    guild=discord.Object(id=server_configs[0])
+)
+@discord.app_commands.describe(
+    producto="El producto a aumentar / The product to increase",
+    cantidad="Cantidad a añadir / Amount to add"
+)
+@discord.app_commands.choices(producto=[
+    discord.app_commands.Choice(name="Robux", value="robux"),
+    discord.app_commands.Choice(name="Coins", value="coins"),
+    discord.app_commands.Choice(name="Fruta", value="fruit"),
+])
+async def upstock(interaction: discord.Interaction, producto: discord.app_commands.Choice[str], cantidad: int):
+    if cantidad <= 0:
+        await interaction.response.send_message(
+            "❌ La cantidad debe ser mayor que 0. / Amount must be greater than 0.",
+            ephemeral=True
+        )
+        return
+
+    if producto.value == "robux":
+        bot.robux_stock += cantidad
+    elif producto.value == "coins":
+        bot.coins_stock += cantidad
+    elif producto.value == "fruit":
+        bot.fruit_stock += cantidad
+    else:
+        await interaction.response.send_message(
+            "❌ Producto no válido. / Invalid product.",
+            ephemeral=True
+        )
+        return
+
+    embed = discord.Embed(
+        title="✅ Stock actualizado / Stock updated",
+        description=f"Producto / Product: **{producto.name}**\nCantidad añadida / Amount added: **{cantidad}**",
+        color=discord.Color.green()
+    )
+    embed.set_footer(text="Bot de ventas / Sales Bot")
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+@bot.tree.command(
+    name="promos",
+    description="🔥 Muestra las promociones y ofertas actuales / Show current promotions and offers",
+    guild=discord.Object(id=server_configs[0])
+)
+async def promos(interaction: discord.Interaction):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="🔥 Promociones y Ofertas / Promotions & Deals 🔥",
+        description=(
+            "**🎉 ¡Aprovecha estas increíbles ofertas por tiempo limitado! / Take advantage of these limited-time deals! 🎉**\n\n"
+            "• **🎮 Robux:** 10% de descuento en compras mayores a 1000 Robux / 10% off on purchases over 1000 Robux\n"
+            "• **💰 Coins:** Compra 500 y recibe 50 gratis / Buy 500 and get 50 free\n"
+            "• **🍉 Fruta:** 2x1 en packs especiales hasta el domingo / 2-for-1 on special packs until Sunday\n\n"
+            "⌛ *Las promociones pueden cambiar sin previo aviso / Promotions may change without prior notice.*\n"
+            "💬 Para dudas, contacta al soporte."
+        ),
+        color=0xFF4500  # Naranja vibrante
+    )
+
+    embed.set_footer(text="© TuBot • Ventas Virtuales / Virtual Sales")
+    embed.set_thumbnail(url="https://i.imgur.com/4M34hi2.png")  # Puedes poner tu logo o imagen relacionada
+    embed.set_author(name=str(interaction.user), icon_url=interaction.user.display_avatar.url)
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @bot.tree.command(name="g", description="🔗 Muestra el grupo de Roblox para la compra de Robux")
 async def grupo_roblox(interaction: discord.Interaction):
