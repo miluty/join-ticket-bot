@@ -983,29 +983,27 @@ async def removercompra(interaction: discord.Interaction, user: discord.User, pr
 
 @tree.command(
     name="g",
-    description="🔗 Muestra el grupo de Roblox para recibir Robux / Show Roblox group to receive Robux",
+    description="🔗 Muestra el grupo de Roblox para recibir Robux / Shows the Roblox group to receive Robux",
     guild=discord.Object(id=server_configs[0])
 )
 async def grupo_roblox(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message(
-            "❌ Comando no disponible aquí. / Command not available here.",
-            ephemeral=True
-        )
+        await interaction.response.send_message("❌ Comando no disponible en este servidor. / Command not available in this server.", ephemeral=True)
         return
 
     url_grupo = "https://www.roblox.com/es/communities/36003914/CoinsVerse#!/about"
 
     embed = discord.Embed(
-        title="🔗 Grupo de Roblox / Roblox Group",
+        title="🎮 Grupo de Roblox para recibir Robux / Roblox Group to Receive Robux",
         description=(
-            "🎮 Para recibir **Robux** debes estar **unido a nuestro grupo de Roblox** por al menos **15 días**.\n"
-            "🎮 To receive **Robux**, you must be **in our Roblox group** for at least **15 days**.\n\n"
-            f"👉 [Únete al grupo / Join the group]({url_grupo})"
+            "📌 Debes estar **unido al grupo** al menos **15 días** para recibir Robux.\n"
+            "📌 You must be **a group member for at least 15 days** to receive Robux.\n\n"
+            f"🔗 [ÚNETE / JOIN HERE]({url_grupo})"
         ),
-        color=0x00b0f4
+        color=discord.Color.blue()
     )
-    embed.set_thumbnail(url="https://tr.rbxcdn.com/835e3403998e1cf5207b0fd9445dfb86/150/150/Image/Png")
-    embed.set_footer(text="Sistema de ventas Robux / Robux Sales System")
+    embed.set_thumbnail(url="https://tr.rbxcdn.com/6f71aa7a02fc9977fca93360e359418c/150/150/Image/Png")
+    embed.set_footer(text="Coinverse | Seguridad y confianza - Safe & Trusted")
 
     await interaction.response.send_message(embed=embed, ephemeral=False)
+
