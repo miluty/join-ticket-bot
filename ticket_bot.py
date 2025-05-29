@@ -552,6 +552,8 @@ async def price(interaction: discord.Interaction):
 
 async def setup(bot):
     await bot.add_cog(Vouch(bot))
+
+
 @bot.tree.command(name="vouch", description="📝 Deja una calificación y sube pruebas para un vendedor / Leave a rating and upload proof for a seller")
 @app_commands.describe(
     usuario="Usuario al que haces vouch / User you're vouching for",
@@ -636,6 +638,7 @@ async def ruleta(interaction: discord.Interaction, premio: str):
     embed.set_footer(text=f"Ruleta por {interaction.user}", icon_url=interaction.user.display_avatar.url)
 
     await interaction.response.send_message(embed=embed)
+    
 @bot.tree.command(name="anuncio", description="📢 Envía un anuncio con @everyone y opcionalmente una imagen")
 @app_commands.describe(
     canal="Canal donde se enviará el anuncio",
@@ -657,7 +660,7 @@ async def anuncio(
         title="📢 ¡ANUNCIO IMPORTANTE!",
         description=mensaje,
         color=discord.Color.orange(),
-        timestamp=datetime.utcnow()
+        datetime.utcnow()
 
     )
 
