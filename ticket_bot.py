@@ -229,7 +229,8 @@ class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
                 + (f"📉 **Stock Restante / Remaining Stock:** `{self.data_manager.get_stock(self.tipo)}`" if self.tipo == "robux" else "")
             ),
             color=discord.Color.orange(),
-            timestamp=datetime.datetime.utcnow()
+            timestamp=datetime.utcnow()
+
         )
         embed_ticket.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
 
@@ -259,7 +260,8 @@ class ClaimView(discord.ui.View):
             title="🔧 Ticket Reclamado / Ticket Claimed",
             description=f"🛠️ **Reclamado por / Claimed by:** {interaction.user.mention}",
             color=discord.Color.blue(),
-            timestamp=datetime.datetime.utcnow()
+            timestamp=datetime.utcnow()
+
         )
         embed_reclamado.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
 
@@ -317,7 +319,8 @@ async def panel(interaction: discord.Interaction):
             "📩 Pulsa el menú desplegable para continuar / Use the dropdown menu to continue."
         ),
         color=discord.Color.green(),
-        timestamp=datetime.utcnow()  # ← CORREGIDO
+        timestamp=datetime.utcnow()
+
     )
     embed.set_footer(
         text="Sistema de Tickets | Ticket System",
@@ -490,7 +493,8 @@ async def price(interaction: discord.Interaction):
             "📦 Order now and level up your game!"
         ),
         color=discord.Color.gold(),
-        timestamp=datetime.datetime.utcnow()
+        timestamp=datetime.utcnow()
+
     )
 
     embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")
@@ -581,7 +585,8 @@ async def vouch(
             f"**⭐ Calificación / Rating:** {estrellas_str}"
         ),
         color=discord.Color.gold(),
-        timestamp=datetime.datetime.utcnow()
+        timestamp=datetime.utcnow()
+
     )
     embed.set_footer(text="Sistema de Ventas | Sales System", icon_url=bot.user.display_avatar.url)
 
@@ -624,7 +629,8 @@ async def ruleta(interaction: discord.Interaction, premio: str):
             f"¡Felicidades! 🎈"
         ),
         color=discord.Color.purple(),
-        timestamp=datetime.datetime.utcnow()
+        timestamp=datetime.utcnow()
+
     )
     embed.set_thumbnail(url=ganador.display_avatar.url)
     embed.set_footer(text=f"Ruleta por {interaction.user}", icon_url=interaction.user.display_avatar.url)
@@ -651,7 +657,8 @@ async def anuncio(
         title="📢 ¡ANUNCIO IMPORTANTE!",
         description=mensaje,
         color=discord.Color.orange(),
-        timestamp=datetime.datetime.utcnow()
+        timestamp=datetime.utcnow()
+
     )
 
     embed.add_field(name="🔔 Atención:", value="Este mensaje es para **todos** los miembros del servidor.", inline=False)
