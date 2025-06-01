@@ -140,7 +140,7 @@ class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
         label_cantidad = {
             "fruit": "🍉 ¿Cuánta fruta quieres? / How many fruits?",
             "coins": "💰 ¿Cuántas coins quieres? / How many coins?",
-            "farm_mojos": "🌾 ¿Cuántos Mojos quieres farmear? / How many Mojos to farm?",
+            "farm_mojos": "🌾 Mojos a farmear / Mojos to farm",
         }.get(tipo, "Cantidad / Amount")
 
         self.cantidad = discord.ui.TextInput(
