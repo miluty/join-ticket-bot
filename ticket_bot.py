@@ -140,7 +140,7 @@ class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
         label_cantidad = {
             "fruit": "🍉 ¿Cuánta fruta quieres? / How many fruits?",
             "coins": "💰 ¿Cuántas coins quieres? / How many coins?",
-            "robux": "🎮 ¿Cuántos Robux quieres? / How many Robux?",
+            "farm_mojos": "🌾 ¿Cuántos Mojos quieres farmear? / How many Mojos to farm?",
         }.get(tipo, "Cantidad / Amount")
 
         self.cantidad = discord.ui.TextInput(
@@ -205,7 +205,7 @@ class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
         producto_nombre = {
             "fruit": "🍉 Fruta / Fruit",
             "coins": "💰 Coins",
-            "robux": "🎮 Robux"
+            "farm_mojos": "🌾 Farm Mojos"
         }.get(self.tipo, "❓ Desconocido / Unknown")
 
         # Guardar datos del ticket
@@ -284,9 +284,9 @@ class PanelView(discord.ui.View):
                 description="Compra monedas del juego / Buy game coins"
             ),
             discord.SelectOption(
-                label="🎮 Comprar Robux / Buy Robux",
-                value="robux",
-                description="Compra Robux para Roblox / Buy Robux for Roblox"
+                label="🌾 Farm Mojos",
+                value="farm_mojos",
+                description="Servicio de farmeo de Mojos / Mojo farming service"
             ),
         ]
         select = discord.ui.Select(
