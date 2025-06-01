@@ -34,7 +34,7 @@ class DataManager:
             "claimed_tickets": {},    # channel_id: user_id staff
             "user_purchases": {},     # user_id: total_compras
             "roles_assigned": {},     # user_id: rol_asignado
-            "robux_stock": 10000,
+            "mojos_stock": 10000,
             "coins_stock": 5000,
             "fruit_stock": 3000
         }
@@ -52,7 +52,7 @@ class DataManager:
                     "claimed_tickets": {},
                     "user_purchases": {},
                     "roles_assigned": {},
-                    "robux_stock": 10000,
+                    "mojos_stock": 10000,
                     "coins_stock": 5000,
                     "fruit_stock": 3000
                 }
@@ -140,7 +140,7 @@ class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
         label_cantidad = {
             "fruit": "🍉 ¿Cuánta fruta quieres? / How many fruits?",
             "coins": "💰 ¿Cuántas coins quieres? / How many coins?",
-            "farm_mojos": "🌾 Mojos a farmear / Mojos to farm",
+            "mojos": "🌾 Mojos a farmear / Mojos to farm",
         }.get(tipo, "Cantidad / Amount")
 
         self.cantidad = discord.ui.TextInput(
@@ -205,7 +205,7 @@ class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
         producto_nombre = {
             "fruit": "🍉 Fruta / Fruit",
             "coins": "💰 Coins",
-            "farm_mojos": "🌾 Farm Mojos"
+            "mojos": "🌾 Farm Mojos"
         }.get(self.tipo, "❓ Desconocido / Unknown")
 
         # Guardar datos del ticket
