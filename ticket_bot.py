@@ -319,18 +319,18 @@ async def panel(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed, view=PanelView(data_manager))
 
+
 @tree.command(
     name="ventahecha",
     description="✅ Confirma la venta y cierra el ticket / Confirm sale and close ticket",
     guild=discord.Object(id=server_configs[0])
 )
-@app_commands.describe()  # Puedes agregar descripciones para parámetros si tuvieras
 async def ventahecha(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
         await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
         return
 
-    if not interaction.channel.name.startswith(("fruit", "coins", "robux")):
+    if not interaction.channel.name.lower().startswith(("fruit", "coins", "robux", "mojos")):
         await interaction.response.send_message("❌ Solo se puede usar en tickets de venta. / Only usable in sale tickets.", ephemeral=True)
         return
 
@@ -376,7 +376,13 @@ async def ventahecha(interaction: discord.Interaction):
             mensaje = await vouch_channel.send(embed=embed)
             await mensaje.add_reaction("❤️")
 
-            data_manager.add_sale(str(interaction_btn.user.id), producto, int(cantidad))
+            # Guardar historial de venta en data_manager
+            try:
+                cantidad_num = int(cantidad)
+            except Exception:
+                cantidad_num = 0
+
+            data_manager.add_sale(str(interaction_btn.user.id), producto.lower(), cantidad_num)
 
             await interaction_btn.response.send_message("✅ Venta confirmada. Cerrando ticket... / Sale confirmed. Closing ticket...", ephemeral=False)
             data_manager.remove_ticket(interaction.channel.id)
@@ -396,6 +402,10 @@ async def ventahecha(interaction: discord.Interaction):
         "Please confirm that you received your product.",
         view=ConfirmView()
     )
+
+
+
+
 @tree.command(
     name="cancelarventa",
     description="❌ Cancela el ticket de venta actual / Cancel current sale ticket",
@@ -410,7 +420,7 @@ async def cancelarventa(interaction: discord.Interaction):
         )
         return
 
-    if not interaction.channel or not interaction.channel.name.startswith(("robux", "coins", "fruit")):
+    if not interaction.channel or not interaction.channel.name.startswith(("robux", "coins", "fruit", "mojos")):
         await interaction.response.send_message(
             "❌ Este comando solo funciona dentro de tickets de venta. / This command only works inside sale tickets.",
             ephemeral=True
@@ -433,6 +443,8 @@ async def cancelarventa(interaction: discord.Interaction):
         cantidad_int = int(cantidad)
         if producto == "🎮 Robux":
             bot.robux_stock += cantidad_int
+        elif producto.lower() == "mojos":
+            bot.mojos_stock += cantidad_int  # Asegúrate que tienes esta variable definida
         # Agrega aquí otros stocks si tienes
     except ValueError:
         pass
@@ -456,6 +468,14 @@ async def cancelarventa(interaction: discord.Interaction):
         await interaction.channel.delete()
     except Exception as e:
         print(f"Error eliminando canal: {e}")
+
+
+
+
+
+
+
+
 
 
 
