@@ -319,8 +319,12 @@ async def panel(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed, view=PanelView(data_manager))
 
-
-@bot.tree.command(name="ventahecha", description="✅ Confirma la venta y cierra el ticket / Confirm sale and close ticket")
+@tree.command(
+    name="ventahecha",
+    description="✅ Confirma la venta y cierra el ticket / Confirm sale and close ticket",
+    guild=discord.Object(id=server_configs[0])
+)
+@app_commands.describe()  # Puedes agregar descripciones para parámetros si tuvieras
 async def ventahecha(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
         await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
@@ -372,7 +376,6 @@ async def ventahecha(interaction: discord.Interaction):
             mensaje = await vouch_channel.send(embed=embed)
             await mensaje.add_reaction("❤️")
 
-            # Guardar historial de venta en data_manager
             data_manager.add_sale(str(interaction_btn.user.id), producto, int(cantidad))
 
             await interaction_btn.response.send_message("✅ Venta confirmada. Cerrando ticket... / Sale confirmed. Closing ticket...", ephemeral=False)
@@ -392,16 +395,14 @@ async def ventahecha(interaction: discord.Interaction):
         "Por favor confirma que recibiste tu producto. / Waiting for client confirmation...\n"
         "Please confirm that you received your product.",
         view=ConfirmView()
-    )       
-
-
+    )
 @tree.command(
     name="cancelarventa",
     description="❌ Cancela el ticket de venta actual / Cancel current sale ticket",
     guild=discord.Object(id=server_configs[0])
 )
+@app_commands.describe()
 async def cancelarventa(interaction: discord.Interaction):
-    # Validar servidor
     if interaction.guild_id not in server_configs:
         await interaction.response.send_message(
             "❌ Comando no disponible aquí. / Command not available here.",
@@ -409,60 +410,54 @@ async def cancelarventa(interaction: discord.Interaction):
         )
         return
 
-    # Validar canal correcto para ticket de venta
-    channel_name = interaction.channel.name if interaction.channel else ""
-    if not channel_name.startswith(("fruit", "coins", "robux")):
+    if not interaction.channel or not interaction.channel.name.startswith(("robux", "coins", "fruit")):
         await interaction.response.send_message(
             "❌ Este comando solo funciona dentro de tickets de venta. / This command only works inside sale tickets.",
             ephemeral=True
         )
         return
 
-    # Obtener datos del ticket
-    datos = ticket_data.get(interaction.channel.id)
-    if not datos:
+    ticket = data_manager.get_ticket(interaction.channel.id)
+    if not ticket:
         await interaction.response.send_message(
-            "❌ No se encontraron datos del ticket. / No ticket data found.",
+            "❌ No se encontraron datos de este ticket. / No ticket data found.",
             ephemeral=True
         )
         return
 
-    producto = datos.get("producto", "No especificado / Not specified")
-    cantidad = datos.get("cantidad", "No especificada / Not specified")
+    producto = ticket.get("producto", "No especificado / Not specified")
+    cantidad = ticket.get("cantidad", "0")
+    cliente_id = ticket.get("cliente_id", "???")
 
-    # Identificar tipo para devolver stock si aplica
-    tipo = None
-    if producto == "🎮 Robux":
-        tipo = "robux"
-    elif producto == "💰 Coins":
-        tipo = "coins"
-    elif producto == "🍉 Fruta":
-        tipo = "fruit"
+    try:
+        cantidad_int = int(cantidad)
+        if producto == "🎮 Robux":
+            bot.robux_stock += cantidad_int
+        # Agrega aquí otros stocks si tienes
+    except ValueError:
+        pass
 
-    # Devolver stock para robux (puedes agregar más tipos si quieres)
-    if tipo == "robux":
-        try:
-            cantidad_num = int(cantidad)
-            bot.robux_stock += cantidad_num
-        except Exception as e:
-            # Opcional: loggear error si quieres
-            pass
+    data_manager.remove_ticket(interaction.channel.id)
 
-    # Eliminar datos y cerrar canal
-    ticket_data.pop(interaction.channel.id, None)
-
-    await interaction.response.send_message(
-        f"❌ Ticket de venta cancelado y cerrado.\n"
-        f"Producto: {producto}\nCantidad: {cantidad}\n"
-        "/ Sale ticket cancelled and closed.\n"
-        f"Product: {producto}\nAmount: {cantidad}",
-        ephemeral=False
+    embed = discord.Embed(
+        title="❌ Venta Cancelada / Sale Cancelled",
+        description=(
+            f"📦 **Producto / Product:** {producto}\n"
+            f"🔢 **Cantidad / Amount:** {cantidad}\n"
+            f"🙋‍♂️ **Cliente / Client:** <@{cliente_id}>"
+        ),
+        color=discord.Color.red(),
+        timestamp=datetime.utcnow()
     )
-    # Intentar eliminar canal, con manejo básico de error
+    embed.set_footer(text="Sistema de Ventas | Sales System", icon_url=bot.user.display_avatar.url)
+
+    await interaction.response.send_message(embed=embed)
     try:
         await interaction.channel.delete()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Error eliminando canal: {e}")
+
+
 
 
 
