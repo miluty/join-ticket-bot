@@ -25,18 +25,19 @@ tree = bot.tree
 claimed_tickets = {}  # Para saber qué ticket está reclamado
 ticket_data = {}      # Para guardar datos de cada ticket
 # Asumiendo que defines el stock de Robux globalmente
-bot.robux_stock = 10000000 # Stock inicial, ajusta según necesites
+
 
 class DataManager:
     def __init__(self):
         self.data = {
-            "ticket_data": {},        # channel_id: {producto, cantidad, metodo, cliente_id}
-            "claimed_tickets": {},    # channel_id: user_id staff
-            "user_purchases": {},     # user_id: total_compras
-            "roles_assigned": {},     # user_id: rol_asignado
-            "mojos_stock": 10000,
+            "ticket_data": {},
+            "claimed_tickets": {},
+            "user_purchases": {},
+            "roles_assigned": {},
+            "robux_stock": 10000,
             "coins_stock": 5000,
-            "fruit_stock": 3000
+            "fruit_stock": 3000,
+            "mojos_stock": 2000
         }
         self.load()
 
@@ -52,9 +53,10 @@ class DataManager:
                     "claimed_tickets": {},
                     "user_purchases": {},
                     "roles_assigned": {},
-                    "mojos_stock": 10000,
+                    "robux_stock": 10000,
                     "coins_stock": 5000,
-                    "fruit_stock": 3000
+                    "fruit_stock": 3000,
+                    "mojos_stock": 2000
                 }
                 self.save()
 
@@ -62,7 +64,6 @@ class DataManager:
         with open(DATA_FILE, "w") as f:
             json.dump(self.data, f, indent=4)
 
-    # Métodos para manejar tickets
     def get_ticket(self, channel_id):
         return self.data["ticket_data"].get(str(channel_id))
 
@@ -74,7 +75,6 @@ class DataManager:
         self.data["ticket_data"].pop(str(channel_id), None)
         self.save()
 
-    # Métodos para tickets reclamados
     def get_claimed(self, channel_id):
         return self.data["claimed_tickets"].get(str(channel_id))
 
@@ -86,7 +86,6 @@ class DataManager:
         self.data["claimed_tickets"].pop(str(channel_id), None)
         self.save()
 
-    # Compras por usuario
     def get_user_purchases(self, user_id):
         return self.data["user_purchases"].get(str(user_id), 0)
 
@@ -96,12 +95,9 @@ class DataManager:
         self.data["user_purchases"][user_id_str] = current + amount
         self.save()
 
-    # Método para registrar una venta (añadir al total de compras)
     def add_sale(self, user_id, producto, cantidad):
-        # Puedes expandir esto para manejar productos distintos si quieres
         self.add_user_purchase(user_id, cantidad)
 
-    # Stock
     def get_stock(self, product):
         return self.data.get(f"{product}_stock", 0)
 
@@ -115,7 +111,6 @@ class DataManager:
         self.data[key] = self.data.get(key, 0) + amount
         self.save()
 
-    # Roles asignados
     def get_role_assigned(self, user_id):
         return self.data["roles_assigned"].get(str(user_id))
 
@@ -127,11 +122,9 @@ class DataManager:
         self.data["roles_assigned"].pop(str(user_id), None)
         self.save()
 
-
 data_manager = DataManager()
 
-        
-class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
+class SaleModal(discord.ui.Modal, title="🍆 Compra / Purchase Details"):
     def __init__(self, tipo, data_manager: DataManager):
         super().__init__()
         self.tipo = tipo
@@ -140,7 +133,8 @@ class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
         label_cantidad = {
             "fruit": "🍉 ¿Cuánta fruta quieres? / How many fruits?",
             "coins": "💰 ¿Cuántas coins quieres? / How many coins?",
-            "mojos": "🌾 Mojos a farmear / Mojos to farm",
+            "robux": "🎮 ¿Cuántos Robux quieres? / How many Robux?",
+            "mojos": "🐮 ¿Cuántos Mojos quieres? / How many Mojos?"
         }.get(tipo, "Cantidad / Amount")
 
         self.cantidad = discord.ui.TextInput(
@@ -162,7 +156,6 @@ class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
         self.add_item(self.metodo_pago)
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Validar cantidad y stock
         try:
             cantidad_int = int(self.cantidad.value)
             if cantidad_int <= 0:
@@ -177,15 +170,13 @@ class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
         stock_actual = self.data_manager.get_stock(self.tipo)
         if cantidad_int > stock_actual:
             await interaction.response.send_message(
-                f"❌ No hay suficiente stock. / Not enough stock.\n📉 Disponible / Available: `{stock_actual}`",
+                f"❌ No hay suficiente stock. / Not enough stock.\n📉 Disponible / Available: {stock_actual}",
                 ephemeral=True
             )
             return
 
-        # Reducir stock
         self.data_manager.reduce_stock(self.tipo, cantidad_int)
 
-        # Crear canal del ticket
         overwrites = {
             interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
             interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
@@ -205,10 +196,10 @@ class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
         producto_nombre = {
             "fruit": "🍉 Fruta / Fruit",
             "coins": "💰 Coins",
-            "mojos": "🌾 Farm Mojos"
+            "robux": "🎮 Robux",
+            "mojos": "🐮 Mojos"
         }.get(self.tipo, "❓ Desconocido / Unknown")
 
-        # Guardar datos del ticket
         self.data_manager.set_ticket(channel.id, {
             "producto": producto_nombre,
             "cantidad": self.cantidad.value,
@@ -216,7 +207,6 @@ class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
             "cliente_id": str(interaction.user.id)
         })
 
-        # Vista para reclamar ticket
         claim_view = ClaimView(channel, self.data_manager)
 
         embed_ticket = discord.Embed(
@@ -224,20 +214,18 @@ class SaleModal(discord.ui.Modal, title="📦 Compra / Purchase Details"):
             description=(
                 f"👤 **Cliente / Client:** {interaction.user.mention}\n"
                 f"📦 **Producto / Product:** {producto_nombre}\n"
-                f"🔢 **Cantidad / Amount:** `{self.cantidad.value}`\n"
-                f"💳 **Pago / Payment:** `{self.metodo_pago.value}`\n"
-                + (f"📉 **Stock Restante / Remaining Stock:** `{self.data_manager.get_stock(self.tipo)}`" if self.tipo == "robux" else "")
+                f"🔹 **Cantidad / Amount:** {self.cantidad.value}\n"
+                f"💳 **Pago / Payment:** {self.metodo_pago.value}\n"
+                + (f"📉 **Stock Restante / Remaining Stock:** {self.data_manager.get_stock(self.tipo)}"
+                   if self.tipo in ["robux", "mojos"] else "")
             ),
             color=discord.Color.orange(),
             timestamp=datetime.utcnow()
-
         )
         embed_ticket.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
 
         await channel.send(content=interaction.user.mention, embed=embed_ticket, view=claim_view)
         await interaction.response.send_message(f"✅ Ticket creado: {channel.mention} / Ticket created", ephemeral=True)
-
-
 
 class ClaimView(discord.ui.View):
     def __init__(self, channel, data_manager: DataManager):
@@ -261,7 +249,6 @@ class ClaimView(discord.ui.View):
             description=f"🛠️ **Reclamado por / Claimed by:** {interaction.user.mention}",
             color=discord.Color.blue(),
             timestamp=datetime.utcnow()
-
         )
         embed_reclamado.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
 
@@ -284,10 +271,15 @@ class PanelView(discord.ui.View):
                 description="Compra monedas del juego / Buy game coins"
             ),
             discord.SelectOption(
-                label="🌾 Farm Mojos",
-                value="farm_mojos",
-                description="Servicio de farmeo de Mojos / Mojo farming service"
+                label="🎮 Comprar Robux / Buy Robux",
+                value="robux",
+                description="Compra Robux para Roblox / Buy Robux for Roblox"
             ),
+            discord.SelectOption(
+                label="🐮 Comprar Mojos / Buy Mojos",
+                value="mojos",
+                description="Compra recursos de la Mojo Farm / Buy Mojo Farm resources"
+            )
         ]
         select = discord.ui.Select(
             placeholder="Selecciona un producto / Select a product 🍽️",
@@ -300,7 +292,6 @@ class PanelView(discord.ui.View):
         tipo = interaction.data['values'][0]
         await interaction.response.send_modal(SaleModal(tipo, self.data_manager))
 
-
 @tree.command(name="panel", description="📩 Muestra el panel de tickets / Show the ticket panel")
 async def panel(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
@@ -308,10 +299,10 @@ async def panel(interaction: discord.Interaction):
         return
 
     embed = discord.Embed(
-        title="🎫 Sistema de Tickets de Venta / Sales Ticket System",
+        title="🎋 Sistema de Tickets de Venta / Sales Ticket System",
         description=(
             "👋 **Bienvenido al sistema de tickets** / Welcome to the ticket system\n\n"
-            "🛍️ Selecciona el producto que deseas comprar / Select the product you want to buy\n"
+            "💼 Selecciona el producto que deseas comprar / Select the product you want to buy\n"
             "💳 Métodos aceptados / Accepted methods:\n"
             "**• PayPal**\n"
             "**• Robux**\n"
@@ -320,7 +311,6 @@ async def panel(interaction: discord.Interaction):
         ),
         color=discord.Color.green(),
         timestamp=datetime.utcnow()
-
     )
     embed.set_footer(
         text="Sistema de Tickets | Ticket System",
@@ -402,7 +392,8 @@ async def ventahecha(interaction: discord.Interaction):
         "Por favor confirma que recibiste tu producto. / Waiting for client confirmation...\n"
         "Please confirm that you received your product.",
         view=ConfirmView()
-    )
+    )       
+
 
 @tree.command(
     name="cancelarventa",
