@@ -21,6 +21,7 @@ ticket_category_id = 1373499892886016081  # Categoría donde se crean tickets
 vouch_channel_id = 1317725063893614633  # Canal donde se envían los vouches
 ROLE_VERIFICADO_ID = 1317732832898060358
 log_channel_id = 1382521684405518437
+user_vouches = {} 
 tree = bot.tree
 
 claimed_tickets = {}  # Para saber qué ticket está reclamado
@@ -692,8 +693,11 @@ async def vouch(
         )
         return
 
-    estrellas_str = "⭐" * estrellas + "☆" * (5 - estrellas)
+    # Incrementar el contador del usuario
+    user_id = usuario.id
+    vouch_counter[user_id] = vouch_counter.get(user_id, 0) + 1
 
+    estrellas_str = "⭐" * estrellas + "☆" * (5 - estrellas)
     author_display = "❓ Unknown / Anónimo" if anonimo else interaction.user.mention
 
     embed = discord.Embed(
@@ -702,7 +706,8 @@ async def vouch(
             f"**👤 Vouch por / From:** {author_display}\n"
             f"**🙋‍♂️ Para / For:** {usuario.mention}\n"
             f"**📦 Producto / Product:** {producto}\n"
-            f"**⭐ Calificación / Rating:** {estrellas_str}"
+            f"**⭐ Calificación / Rating:** {estrellas_str}\n"
+            f"🔢 **Total de Vouches:** {vouch_counter[user_id]}"
         ),
         color=discord.Color.gold(),
         timestamp=datetime.utcnow()
@@ -718,20 +723,45 @@ async def vouch(
     )
 
     vouch_channel = interaction.guild.get_channel(vouch_channel_id)
-    if not vouch_channel:
-        await interaction.followup.send("⚠️ Canal de vouches no encontrado. / Vouch channel not found.", ephemeral=True)
+    if vouch_channel:
+        msg = await vouch_channel.send(embed=embed)
+        await msg.add_reaction("❤️")
+
+    # Log privado
+    log_channel = interaction.guild.get_channel(1382521684405518437)
+    if log_channel:
+        await log_channel.send(
+            f"📥 Nuevo vouch registrado por {interaction.user.mention} para {usuario.mention}.\n"
+            f"Producto: {producto}, Estrellas: {estrellas} ⭐\n"
+            f"Anonimato: {'Sí' if anonimo else 'No'}\n"
+            f"🔢 Total actual de vouches: {vouch_counter[user_id]}"
+        )
+@tree.command(
+    name="checkvouch",
+    description="🔎 Ver cuántos vouches tiene un usuario / Check how many vouches a user has"
+)
+@app_commands.describe(
+    usuario="Usuario al que quieres revisar / User to check"
+)
+async def checkvouch(interaction: discord.Interaction, usuario: discord.Member):
+    if interaction.guild_id not in server_configs:
+        await interaction.response.send_message(
+            "❌ Comando no permitido aquí. / Command not allowed here.",
+            ephemeral=True
+        )
         return
 
-    msg = await vouch_channel.send(embed=embed)
-    await msg.add_reaction("❤️")
+    total = vouch_counter.get(usuario.id, 0)
 
-    # Log privado (si tienes un canal configurado)
-    if vouch_log_channel_id:
-        log_channel = interaction.guild.get_channel(vouch_log_channel_id)
-        if log_channel:
-            await log_channel.send(
-                f"📥 Nuevo vouch registrado por {interaction.user} para {usuario}.\nProducto: {producto}, Estrellas: {estrellas}\nAnonimato: {'Sí' if anonimo else 'No'}"
-            )
+    embed = discord.Embed(
+        title="📊 Revisión de Vouches / Vouch Check",
+        description=f"🙋‍♂️ Usuario / User: {usuario.mention}\n🔢 Total de Vouches: **{total}**",
+        color=discord.Color.blue(),
+        timestamp=datetime.utcnow()
+    )
+    embed.set_footer(text="Sistema de Vouches | Vouch System", icon_url=bot.user.display_avatar.url)
+
+    await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 @bot.tree.command(name="ruleta", description="🎲 Sortea un premio entre los miembros del servidor")
@@ -878,48 +908,51 @@ async def pases(interaction: discord.Interaction):
 )
 async def rules(interaction: discord.Interaction):
     embed = discord.Embed(
-        title="📜 REGLAS & TÉRMINOS / RULES & TERMS",
+        title="📜 REGLAS & TÉRMINOS / RULES & TERMS OF SERVICE",
         color=discord.Color.orange(),
         timestamp=datetime.utcnow()
     )
 
-    embed.set_author(name="⚖️ Sistema de Seguridad / Safety System", icon_url=interaction.client.user.display_avatar.url)
+    embed.set_author(
+        name="⚖️ Centro de Seguridad / Safety Center",
+        icon_url=interaction.client.user.display_avatar.url
+    )
     embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")
 
     embed.add_field(
-        name="🛡️ Español / Spanish",
+        name="🇪🇸 Español",
         value=(
             "🔒 **100% Seguro**\n"
             "✅ Transacciones rápidas y verificadas\n"
-            "✅ Staff atento y sistema profesional\n\n"
+            "👨‍💼 Staff atento y sistema profesional\n\n"
             "**📌 Reglas Importantes:**\n"
-            "1️⃣ No hay reembolsos tras la entrega del producto.\n"
-            "2️⃣ Todo pago debe tener prueba clara (screenshot o comprobante).\n"
-            "3️⃣ Usa un ticket para soporte o preguntas.\n"
-            "4️⃣ Prohibido el spam, insultos o faltas de respeto.\n"
-            "5️⃣ Al pagar, aceptas automáticamente estos términos."
+            "1️⃣ No hay reembolsos tras la entrega.\n"
+            "2️⃣ Todo pago debe tener prueba clara.\n"
+            "3️⃣ Usa tickets para dudas o soporte.\n"
+            "4️⃣ Prohibido el spam, insultos o faltas.\n"
+            "5️⃣ Al pagar, aceptas estos términos."
         ),
         inline=False
     )
 
     embed.add_field(
-        name="🌍 English / Inglés",
+        name="🇺🇸 English",
         value=(
             "🔒 **100% Safe**\n"
             "✅ Fast and verified transactions\n"
-            "✅ Professional staff and system\n\n"
+            "👨‍💼 Professional staff and secure system\n\n"
             "**📌 Important Rules:**\n"
-            "1️⃣ No refunds after items are delivered.\n"
-            "2️⃣ Every payment must include clear proof (screenshot or receipt).\n"
-            "3️⃣ Use a ticket for support or questions.\n"
-            "4️⃣ Spamming, insults or disrespect are not allowed.\n"
-            "5️⃣ By paying, you automatically agree to these terms."
+            "1️⃣ No refunds after delivery.\n"
+            "2️⃣ Every payment must include clear proof.\n"
+            "3️⃣ Use tickets for questions or help.\n"
+            "4️⃣ Spamming or disrespect is not allowed.\n"
+            "5️⃣ By paying, you agree to these terms."
         ),
         inline=False
     )
 
     embed.set_footer(
-        text="📌 Presiona un botón abajo para navegar / Press a button below to navigate",
+        text="📌 Usa los botones para continuar / Use the buttons below to continue",
         icon_url=interaction.client.user.display_avatar.url
     )
 
@@ -933,7 +966,7 @@ async def rules(interaction: discord.Interaction):
                 style=discord.ButtonStyle.link
             ))
             self.add_item(Button(
-                label="📩 Dejar Vouch / Leave Vouch",
+                label="🌟 Dejar Vouch / Leave Vouch",
                 url=f"https://discord.com/channels/{guild_id}/1373533364526780427",
                 style=discord.ButtonStyle.link
             ))
@@ -944,6 +977,7 @@ async def rules(interaction: discord.Interaction):
             ))
 
     await interaction.response.send_message(embed=embed, view=RulesView(), ephemeral=False)
+
 
 
 
