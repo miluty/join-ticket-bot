@@ -10,7 +10,6 @@ from discord import app_commands, ui, Interaction, Embed, ButtonStyle, Object
 from discord.ext import commands
 from datetime import datetime, timedelta
 
-
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 DATA_FILE = "data.json"
