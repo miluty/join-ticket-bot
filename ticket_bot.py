@@ -21,7 +21,7 @@ ticket_category_id = 1373499892886016081  # Categoría donde se crean tickets
 vouch_channel_id = 1317725063893614633  # Canal donde se envían los vouches
 ROLE_VERIFICADO_ID = 1317732832898060358
 log_channel_id = 1382521684405518437
-user_vouches = {} 
+vouch_counter = {}  
 tree = bot.tree
 
 claimed_tickets = {}  # Para saber qué ticket está reclamado
