@@ -1254,7 +1254,6 @@ class GiveawayModal(ui.Modal, title="🎉 Crear Sorteo / Create Giveaway"):
     ganadores = ui.TextInput(label="🏆 Número de ganadores", placeholder="Ej: 1", required=True)
     premio_visible = ui.TextInput(label="🎁 Premio visible", placeholder="Ej: Nitro", required=True)
     premio_oculto = ui.TextInput(label="🔒 Detalles privados (enviados por DM)", placeholder="Ej: user:pass", required=False)
-    roles_permitidos = ui.TextInput(label="🎭 Roles permitidos (IDs separados por coma)", placeholder="Ej: 12345678,87654321", required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
@@ -1295,17 +1294,12 @@ class GiveawayModal(ui.Modal, title="🎉 Crear Sorteo / Create Giveaway"):
         reaction = discord.utils.get(msg.reactions, emoji="🎉")
         users = [u async for u in reaction.users() if not u.bot]
 
-        if self.roles_permitidos.value:
-            role_ids = [int(x.strip()) for x in self.roles_permitidos.value.split(",") if x.strip().isdigit()]
-            users = [u for u in users if any(r.id in role_ids for r in u.roles)]
-
         if not users:
             return await canal_obj.send("⚠️ No hubo participantes válidos.")
 
         ganadores_seleccionados = random.sample(users, min(ganadores, len(users)))
         ganadores_menciones = ", ".join(w.mention for w in ganadores_seleccionados)
 
-        # Enviar premio oculto por DM si existe
         if self.premio_oculto.value:
             for ganador in ganadores_seleccionados:
                 try:
@@ -1315,7 +1309,6 @@ class GiveawayModal(ui.Modal, title="🎉 Crear Sorteo / Create Giveaway"):
                 except:
                     pass
 
-        # Embed final
         final_embed = discord.Embed(
             title="🏁 Sorteo finalizado / Giveaway Ended",
             description=(
@@ -1330,6 +1323,7 @@ class GiveawayModal(ui.Modal, title="🎉 Crear Sorteo / Create Giveaway"):
         await msg.edit(embed=final_embed)
 
         await canal_obj.send(f"🎉 Felicidades {ganadores_menciones}, ¡ganaron **{self.premio_visible.value}**!")
+
 
 
 @tree.command(
