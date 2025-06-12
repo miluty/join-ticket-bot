@@ -20,6 +20,7 @@ server_configs = [1317658154397466715]  # IDs de servidores permitidos
 ticket_category_id = 1373499892886016081  # Categoría donde se crean tickets
 vouch_channel_id = 1317725063893614633  # Canal donde se envían los vouches
 ROLE_VERIFICADO_ID = 1317732832898060358
+log_channel_id = 1382521684405518437
 tree = bot.tree
 
 claimed_tickets = {}  # Para saber qué ticket está reclamado
@@ -28,17 +29,19 @@ ticket_data = {}      # Para guardar datos de cada ticket
 
 
 class DataManager:
+    DEFAULT_DATA = {
+        "ticket_data": {},
+        "claimed_tickets": {},
+        "user_purchases": {},
+        "roles_assigned": {},
+        "robux_stock": 10000,
+        "coins_stock": 5000,
+        "fruit_stock": 3000,
+        "mojos_stock": 2000
+    }
+
     def __init__(self):
-        self.data = {
-            "ticket_data": {},
-            "claimed_tickets": {},
-            "user_purchases": {},
-            "roles_assigned": {},
-            "robux_stock": 10000,
-            "coins_stock": 5000,
-            "fruit_stock": 3000,
-            "mojos_stock": 2000
-        }
+        self.data = self.DEFAULT_DATA.copy()
         self.load()
 
     def load(self):
@@ -47,63 +50,67 @@ class DataManager:
                 with open(DATA_FILE, "r") as f:
                     self.data = json.load(f)
             except json.JSONDecodeError:
-                print("⚠️ Warning: El archivo data.json está vacío o corrupto. Se usará configuración por defecto.")
-                self.data = {
-                    "ticket_data": {},
-                    "claimed_tickets": {},
-                    "user_purchases": {},
-                    "roles_assigned": {},
-                    "robux_stock": 10000,
-                    "coins_stock": 5000,
-                    "fruit_stock": 3000,
-                    "mojos_stock": 2000
-                }
+                print("⚠️ Archivo data.json corrupto. Cargando valores por defecto.")
+                self.data = self.DEFAULT_DATA.copy()
                 self.save()
 
     def save(self):
         with open(DATA_FILE, "w") as f:
             json.dump(self.data, f, indent=4)
 
+    def _get_key(self, collection, key, default=None):
+        return self.data.get(collection, {}).get(str(key), default)
+
+    def _set_key(self, collection, key, value):
+        if collection not in self.data:
+            self.data[collection] = {}
+        self.data[collection][str(key)] = value
+        self.save()
+
+    def _remove_key(self, collection, key):
+        if collection in self.data and str(key) in self.data[collection]:
+            del self.data[collection][str(key)]
+            self.save()
+
+    # Métodos para Tickets
     def get_ticket(self, channel_id):
-        return self.data["ticket_data"].get(str(channel_id))
+        return self._get_key("ticket_data", channel_id)
 
     def set_ticket(self, channel_id, info):
-        self.data["ticket_data"][str(channel_id)] = info
-        self.save()
+        self._set_key("ticket_data", channel_id, info)
 
     def remove_ticket(self, channel_id):
-        self.data["ticket_data"].pop(str(channel_id), None)
-        self.save()
+        self._remove_key("ticket_data", channel_id)
 
+    # Métodos para Claim
     def get_claimed(self, channel_id):
-        return self.data["claimed_tickets"].get(str(channel_id))
+        return self._get_key("claimed_tickets", channel_id)
 
     def set_claimed(self, channel_id, user_id):
-        self.data["claimed_tickets"][str(channel_id)] = str(user_id)
-        self.save()
+        self._set_key("claimed_tickets", channel_id, user_id)
 
     def remove_claimed(self, channel_id):
-        self.data["claimed_tickets"].pop(str(channel_id), None)
-        self.save()
+        self._remove_key("claimed_tickets", channel_id)
 
+    # Compras
     def get_user_purchases(self, user_id):
-        return self.data["user_purchases"].get(str(user_id), 0)
+        return self._get_key("user_purchases", user_id, 0)
 
     def add_user_purchase(self, user_id, amount):
-        user_id_str = str(user_id)
-        current = self.data["user_purchases"].get(user_id_str, 0)
-        self.data["user_purchases"][user_id_str] = current + amount
-        self.save()
+        current = self.get_user_purchases(user_id)
+        self._set_key("user_purchases", user_id, current + amount)
 
     def add_sale(self, user_id, producto, cantidad):
         self.add_user_purchase(user_id, cantidad)
 
+    # Stock
     def get_stock(self, product):
         return self.data.get(f"{product}_stock", 0)
 
     def reduce_stock(self, product, amount):
         key = f"{product}_stock"
-        self.data[key] = max(0, self.data.get(key, 0) - amount)
+        current = self.data.get(key, 0)
+        self.data[key] = max(0, current - amount)
         self.save()
 
     def add_stock(self, product, amount):
@@ -111,72 +118,87 @@ class DataManager:
         self.data[key] = self.data.get(key, 0) + amount
         self.save()
 
+    # Roles
     def get_role_assigned(self, user_id):
-        return self.data["roles_assigned"].get(str(user_id))
+        return self._get_key("roles_assigned", user_id)
 
     def set_role_assigned(self, user_id, role_id):
-        self.data["roles_assigned"][str(user_id)] = role_id
-        self.save()
+        self._set_key("roles_assigned", user_id, role_id)
 
     def remove_role_assigned(self, user_id):
-        self.data["roles_assigned"].pop(str(user_id), None)
-        self.save()
+        self._remove_key("roles_assigned", user_id)
+
 
 data_manager = DataManager()
 
 class SaleModal(discord.ui.Modal, title="🍆 Compra / Purchase Details"):
-    def __init__(self, tipo, data_manager: DataManager):
-        super().__init__()
+    def __init__(self, tipo: str, data_manager: DataManager):
+        super().__init__(timeout=None)
         self.tipo = tipo
         self.data_manager = data_manager
 
-        label_cantidad = {
+        etiquetas = {
             "fruit": "🍉 ¿Cuánta fruta quieres? / How many fruits?",
             "coins": "💰 ¿Cuántas coins quieres? / How many coins?",
             "robux": "🎮 ¿Cuántos Robux quieres? / How many Robux?",
             "mojos": "🐮 ¿Cuántos Mojos quieres? / How many Mojos?"
-        }.get(tipo, "Cantidad / Amount")
+        }
 
         self.cantidad = discord.ui.TextInput(
-            label=label_cantidad,
+            label=etiquetas.get(tipo, "Cantidad / Amount"),
             placeholder="Ej: 1, 10, 100... / Ex: 1, 10, 100...",
-            required=True,
-            style=discord.TextStyle.short,
             max_length=10,
+            required=True
         )
-        self.add_item(self.cantidad)
-
         self.metodo_pago = discord.ui.TextInput(
             label="💳 Método de Pago / Payment Method",
             placeholder="Ej: PayPal, Robux... / Ex: PayPal, Robux...",
-            required=True,
-            style=discord.TextStyle.short,
-            max_length=20,
+            max_length=30,
+            required=True
         )
+
+        self.add_item(self.cantidad)
         self.add_item(self.metodo_pago)
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
-            cantidad_int = int(self.cantidad.value)
+            cantidad_int = int(self.cantidad.value.strip())
             if cantidad_int <= 0:
                 raise ValueError
         except ValueError:
             await interaction.response.send_message(
-                "❌ La cantidad debe ser un número positivo válido. / The amount must be a valid positive number.",
+                "❌ Debes ingresar una cantidad válida y positiva. / You must enter a valid positive amount.",
                 ephemeral=True
             )
             return
 
-        stock_actual = self.data_manager.get_stock(self.tipo)
-        if cantidad_int > stock_actual:
+        stock_disponible = self.data_manager.get_stock(self.tipo)
+        if cantidad_int > stock_disponible:
             await interaction.response.send_message(
-                f"❌ No hay suficiente stock. / Not enough stock.\n📉 Disponible / Available: {stock_actual}",
+                f"❌ Stock insuficiente. / Not enough stock.\n📉 Disponible / Available: {stock_disponible}",
                 ephemeral=True
             )
             return
 
         self.data_manager.reduce_stock(self.tipo, cantidad_int)
 
+        # Cálculo del precio si es Coins
+        usd_equivalente = None
+        robux_equivalente = None
+        if self.tipo == "coins":
+            usd_equivalente = round(cantidad_int / 50000, 2)
+            robux_equivalente = round((cantidad_int / 50000) * 140)
+
+        # Preparar texto de precio para mostrar en el embed
+        precio_str = ""
+        if usd_equivalente is not None:
+            precio_str = (
+                f"\n💵 **Precio Estimado / Estimated Price:**\n"
+                f"• **USD:** ${usd_equivalente}\n"
+                f"• **Robux:** {robux_equivalente} R$"
+            )
+
+        # Crear el canal del ticket
         overwrites = {
             interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
             interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
@@ -184,118 +206,163 @@ class SaleModal(discord.ui.Modal, title="🍆 Compra / Purchase Details"):
         }
 
         category = discord.utils.get(interaction.guild.categories, id=ticket_category_id)
-        channel_name = f"{self.tipo}-{interaction.user.name}".lower()
+        safe_name = re.sub(r'[^a-zA-Z0-9\-]', '-', interaction.user.name).lower()
+        nombre_canal = f"{self.tipo}-{safe_name}"
 
-        channel = await interaction.guild.create_text_channel(
-            name=channel_name,
+        canal = await interaction.guild.create_text_channel(
+            name=nombre_canal,
             overwrites=overwrites,
             category=category,
             topic=str(interaction.user.id)
         )
 
-        producto_nombre = {
+        producto_str = {
             "fruit": "🍉 Fruta / Fruit",
             "coins": "💰 Coins",
             "robux": "🎮 Robux",
             "mojos": "🐮 Mojos"
         }.get(self.tipo, "❓ Desconocido / Unknown")
 
-        self.data_manager.set_ticket(channel.id, {
-            "producto": producto_nombre,
-            "cantidad": self.cantidad.value,
+        self.data_manager.set_ticket(canal.id, {
+            "producto": producto_str,
+            "cantidad": str(cantidad_int),
             "metodo": self.metodo_pago.value,
             "cliente_id": str(interaction.user.id)
         })
 
-        claim_view = ClaimView(channel, self.data_manager)
+        claim_view = ClaimView(canal, self.data_manager)
 
-        embed_ticket = discord.Embed(
+        embed = discord.Embed(
             title="🎟️ Nuevo Ticket de Compra / New Purchase Ticket",
             description=(
                 f"👤 **Cliente / Client:** {interaction.user.mention}\n"
-                f"📦 **Producto / Product:** {producto_nombre}\n"
-                f"🔹 **Cantidad / Amount:** {self.cantidad.value}\n"
-                f"💳 **Pago / Payment:** {self.metodo_pago.value}\n"
-                + (f"📉 **Stock Restante / Remaining Stock:** {self.data_manager.get_stock(self.tipo)}"
-                   if self.tipo in ["robux", "mojos"] else "")
+                f"📦 **Producto / Product:** {producto_str}\n"
+                f"🔢 **Cantidad / Amount:** {cantidad_int}\n"
+                f"💳 **Método / Method:** {self.metodo_pago.value}\n"
+                f"📉 **Stock Restante / Remaining Stock:** {self.data_manager.get_stock(self.tipo)}"
+                f"{precio_str}"
             ),
             color=discord.Color.orange(),
             timestamp=datetime.utcnow()
         )
-        embed_ticket.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
+        embed.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
 
-        await channel.send(content=interaction.user.mention, embed=embed_ticket, view=claim_view)
-        await interaction.response.send_message(f"✅ Ticket creado: {channel.mention} / Ticket created", ephemeral=True)
+        await canal.send(content=interaction.user.mention, embed=embed, view=claim_view)
+        await interaction.response.send_message(f"✅ Ticket creado: {canal.mention} / Ticket created", ephemeral=True)
+       
+log_channel = interaction.guild.get_channel(log_channel_id)
+if log_channel:
+    resumen_embed = discord.Embed(
+        title="📝 Nuevo Ticket Creado / New Ticket Created",
+        description=(
+            f"👤 **Cliente:** {interaction.user} (`{interaction.user.id}`)\n"
+            f"📦 **Producto:** {producto_str}\n"
+            f"🔢 **Cantidad:** {cantidad_int}\n"
+            f"💳 **Método de Pago:** {self.metodo_pago.value}\n"
+            f"📁 **Canal:** {canal.mention}"
+        ),
+        color=discord.Color.blue(),
+        timestamp=datetime.utcnow()
+    )
+    resumen_embed.set_footer(text="Log de Tickets", icon_url=bot.user.display_avatar.url)
+    await log_channel.send(embed=resumen_embed)
+
+
 
 class ClaimView(discord.ui.View):
-    def __init__(self, channel, data_manager: DataManager):
+    def __init__(self, channel: discord.TextChannel, data_manager: DataManager):
         super().__init__(timeout=None)
         self.channel = channel
         self.data_manager = data_manager
 
     @discord.ui.button(label="🎟️ Reclamar Ticket / Claim Ticket", style=discord.ButtonStyle.primary, emoji="🛠️")
     async def claim_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if self.data_manager.get_claimed(self.channel.id):
-            await interaction.response.send_message(
-                "❌ Este ticket ya fue reclamado. / This ticket is already claimed.",
-                ephemeral=True
-            )
+        channel_id = self.channel.id
+        ticket_info = self.data_manager.get_ticket(channel_id)
+
+        if not ticket_info:
+            await interaction.response.send_message("❌ Este ticket no tiene información registrada.", ephemeral=True)
             return
 
-        self.data_manager.set_claimed(self.channel.id, interaction.user.id)
+        cliente_id = ticket_info.get("cliente_id")
 
-        embed_reclamado = discord.Embed(
+        if str(interaction.user.id) == str(cliente_id):
+            await interaction.response.send_message("❌ No puedes reclamar tu propio ticket.", ephemeral=True)
+            return
+
+        if self.data_manager.get_claimed(channel_id):
+            await interaction.response.send_message("❌ Este ticket ya fue reclamado por otro miembro del staff.", ephemeral=True)
+            return
+
+        self.data_manager.set_claimed(channel_id, interaction.user.id)
+
+        embed_claim = discord.Embed(
             title="🔧 Ticket Reclamado / Ticket Claimed",
-            description=f"🛠️ **Reclamado por / Claimed by:** {interaction.user.mention}",
-            color=discord.Color.blue(),
+            description=(
+                f"🛠️ **Reclamado por / Claimed by:** {interaction.user.mention}\n"
+                f"🧾 **Cliente / Client:** <@{cliente_id}>"
+            ),
+            color=discord.Color.blurple(),
             timestamp=datetime.utcnow()
         )
-        embed_reclamado.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
+        embed_claim.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
 
-        await interaction.response.edit_message(embed=embed_reclamado, view=None)
-        await self.channel.send(f"🔧 {interaction.user.mention} ha reclamado este ticket. / has claimed this ticket.")
+        await interaction.response.edit_message(embed=embed_claim, view=None)
+        await self.channel.send(f"🛠️ {interaction.user.mention} ha reclamado este ticket.")
+
 
 class PanelView(discord.ui.View):
     def __init__(self, data_manager: DataManager):
         super().__init__(timeout=None)
         self.data_manager = data_manager
-        options = [
+
+        opciones = [
             discord.SelectOption(
                 label="🍉 Comprar Fruta / Buy Fruit",
                 value="fruit",
-                description="Compra fruta premium / Buy premium fruit"
+                description="Fruta especial de Booga / Booga special fruit"
             ),
             discord.SelectOption(
                 label="💰 Comprar Coins / Buy Coins",
                 value="coins",
-                description="Compra monedas del juego / Buy game coins"
+                description="Monedas del juego / Game currency"
             ),
             discord.SelectOption(
                 label="🎮 Comprar Robux / Buy Robux",
                 value="robux",
-                description="Compra Robux para Roblox / Buy Robux for Roblox"
+                description="Créditos para Roblox / Roblox credits"
             ),
             discord.SelectOption(
                 label="🐮 Comprar Mojos / Buy Mojos",
                 value="mojos",
-                description="Compra recursos de la Mojo Farm / Buy Mojo Farm resources"
+                description="Recursos raros de Mojo Farm / Mojo Farm rare items"
             )
         ]
-        select = discord.ui.Select(
-            placeholder="Selecciona un producto / Select a product 🍽️",
-            options=options
+
+        self.select = discord.ui.Select(
+            placeholder="🍽️ Selecciona un producto / Select a product",
+            options=opciones,
+            custom_id="select_producto"
         )
-        select.callback = self.select_callback
-        self.add_item(select)
+        self.select.callback = self.select_callback
+        self.add_item(self.select)
 
     async def select_callback(self, interaction: discord.Interaction):
-        tipo = interaction.data['values'][0]
-        await interaction.response.send_modal(SaleModal(tipo, self.data_manager))
+        if interaction.guild_id not in server_configs:
+            await interaction.response.send_message("❌ Comando no autorizado en este servidor. / Not authorized here.", ephemeral=True)
+            return
+
+        tipo_producto = interaction.data["values"][0]
+        await interaction.response.send_modal(SaleModal(tipo_producto, self.data_manager))
+
 
 @tree.command(name="panel", description="📩 Muestra el panel de tickets / Show the ticket panel")
 async def panel(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Este comando solo está disponible en servidores autorizados. / This command is only available in authorized servers.",
+            ephemeral=True
+        )
         return
 
     embed = discord.Embed(
@@ -317,7 +384,8 @@ async def panel(interaction: discord.Interaction):
         icon_url=bot.user.display_avatar.url
     )
 
-    await interaction.response.send_message(embed=embed, view=PanelView(data_manager))
+    await interaction.response.send_message(embed=embed, view=PanelView(data_manager), ephemeral=True)
+
 
 
 @tree.command(
@@ -346,7 +414,23 @@ async def ventahecha(interaction: discord.Interaction):
 
     class ConfirmView(discord.ui.View):
         def __init__(self):
-            super().__init__(timeout=120)
+            super().__init__(timeout=180)
+            self.anonimo = False
+
+        @discord.ui.select(
+            placeholder="🕵️ ¿Mostrar tu nombre o ser anónimo? / Show name or be anonymous?",
+            options=[
+                discord.SelectOption(label="👤 Mostrar mi nombre / Show my name", value="publico"),
+                discord.SelectOption(label="❔ Ser anónimo / Be anonymous", value="anonimo")
+            ]
+        )
+        async def anonimato_select(self, interaction_btn: discord.Interaction, select: discord.ui.Select):
+            if str(interaction_btn.user.id) != cliente_id:
+                await interaction_btn.response.send_message("❌ Solo el cliente puede elegir esta opción. / Only the client can select this option.", ephemeral=True)
+                return
+            self.anonimo = (select.values[0] == "anonimo")
+            msg = "🔒 Serás mostrado como **Unknown**. / You will appear as **Unknown**." if self.anonimo else "👤 Tu nombre será mostrado. / Your name will be shown."
+            await interaction_btn.response.send_message(msg, ephemeral=True)
 
         @discord.ui.button(label="✅ Confirmar / Confirm", style=discord.ButtonStyle.success, emoji="✔️")
         async def confirm(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
@@ -359,14 +443,16 @@ async def ventahecha(interaction: discord.Interaction):
                 await interaction_btn.response.send_message("❌ Canal de vouches no encontrado. / Vouch channel not found.", ephemeral=True)
                 return
 
+            nombre_cliente = "Unknown" if self.anonimo else interaction_btn.user.mention
+
             embed = discord.Embed(
-                title="🧾 Vouch de Venta Completada / Sale Vouch Completed",
+                title="🧾 Venta Confirmada / Sale Confirmed",
                 description=(
                     f"👤 **Staff:** {interaction.user.mention}\n"
-                    f"🙋‍♂️ **Cliente / Client:** {interaction_btn.user.mention}\n"
+                    f"🙋‍♂️ **Cliente / Client:** {nombre_cliente}\n"
                     f"📦 **Producto / Product:** {producto}\n"
                     f"🔢 **Cantidad / Amount:** {cantidad}\n"
-                    f"💳 **Método de Pago / Payment Method:** {metodo}"
+                    f"💳 **Método / Payment:** {metodo}"
                 ),
                 color=discord.Color.gold(),
                 timestamp=datetime.utcnow()
@@ -376,16 +462,15 @@ async def ventahecha(interaction: discord.Interaction):
             mensaje = await vouch_channel.send(embed=embed)
             await mensaje.add_reaction("❤️")
 
-            # Guardar historial de venta en data_manager
             try:
                 cantidad_num = int(cantidad)
             except Exception:
                 cantidad_num = 0
 
             data_manager.add_sale(str(interaction_btn.user.id), producto.lower(), cantidad_num)
-
-            await interaction_btn.response.send_message("✅ Venta confirmada. Cerrando ticket... / Sale confirmed. Closing ticket...", ephemeral=False)
             data_manager.remove_ticket(interaction.channel.id)
+
+            await interaction_btn.response.send_message("✅ Venta confirmada. Cerrando ticket... / Sale confirmed. Closing ticket...", ephemeral=True)
             await interaction.channel.delete()
 
         @discord.ui.button(label="❌ Negar / Deny", style=discord.ButtonStyle.danger, emoji="✖️")
@@ -398,11 +483,9 @@ async def ventahecha(interaction: discord.Interaction):
 
     await interaction.response.send_message(
         "📩 **Esperando confirmación del cliente...**\n"
-        "Por favor confirma que recibiste tu producto. / Waiting for client confirmation...\n"
-        "Please confirm that you received your product.",
+        "Puedes confirmar la venta o rechazarla. También puedes decidir si deseas aparecer como anónimo. / You can confirm the sale or reject it. You can also choose to be anonymous.",
         view=ConfirmView()
     )
-
 
 
 
@@ -411,7 +494,6 @@ async def ventahecha(interaction: discord.Interaction):
     description="❌ Cancela el ticket de venta actual / Cancel current sale ticket",
     guild=discord.Object(id=server_configs[0])
 )
-@app_commands.describe()
 async def cancelarventa(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
         await interaction.response.send_message(
@@ -420,7 +502,7 @@ async def cancelarventa(interaction: discord.Interaction):
         )
         return
 
-    if not interaction.channel or not interaction.channel.name.startswith(("robux", "coins", "fruit", "mojos")):
+    if not interaction.channel or not interaction.channel.name.lower().startswith(("robux", "coins", "fruit", "mojos")):
         await interaction.response.send_message(
             "❌ Este comando solo funciona dentro de tickets de venta. / This command only works inside sale tickets.",
             ephemeral=True
@@ -441,13 +523,20 @@ async def cancelarventa(interaction: discord.Interaction):
 
     try:
         cantidad_int = int(cantidad)
-        if producto == "🎮 Robux":
+        producto_limpio = producto.strip().lower()
+
+        if producto_limpio in ["robux", "🎮 robux"]:
             bot.robux_stock += cantidad_int
-        elif producto.lower() == "mojos":
-            bot.mojos_stock += cantidad_int  # Asegúrate que tienes esta variable definida
-        # Agrega aquí otros stocks si tienes
-    except ValueError:
-        pass
+        elif producto_limpio in ["mojos", "🧿 mojos"]:
+            bot.mojos_stock += cantidad_int
+        elif producto_limpio in ["coins", "💰 coins"]:
+            bot.coins_stock += cantidad_int
+        elif producto_limpio in ["fruit", "🍎 fruit"]:
+            bot.fruit_stock += cantidad_int
+        # Agrega aquí más productos si tienes más variables de stock
+
+    except Exception as e:
+        print(f"[Stock Recovery Error] {e}")
 
     data_manager.remove_ticket(interaction.channel.id)
 
@@ -456,7 +545,8 @@ async def cancelarventa(interaction: discord.Interaction):
         description=(
             f"📦 **Producto / Product:** {producto}\n"
             f"🔢 **Cantidad / Amount:** {cantidad}\n"
-            f"🙋‍♂️ **Cliente / Client:** <@{cliente_id}>"
+            f"🙋‍♂️ **Cliente / Client:** <@{cliente_id}>\n"
+            f"👤 **Staff:** {interaction.user.mention}"
         ),
         color=discord.Color.red(),
         timestamp=datetime.utcnow()
@@ -464,28 +554,25 @@ async def cancelarventa(interaction: discord.Interaction):
     embed.set_footer(text="Sistema de Ventas | Sales System", icon_url=bot.user.display_avatar.url)
 
     await interaction.response.send_message(embed=embed)
+
     try:
         await interaction.channel.delete()
     except Exception as e:
-        print(f"Error eliminando canal: {e}")
+        print(f"[Channel Delete Error] {e}")
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-@bot.tree.command(name="price", description="💰 Muestra la lista de precios de Coins y Robux / Shows Coins and Robux price list")
+@tree.command(
+    name="price",
+    description="💰 Muestra la lista de precios de Coins y Robux / Shows Coins and Robux price list"
+)
 async def price(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Comando no disponible aquí. / Command not available here.",
+            ephemeral=True
+        )
         return
 
     embed = discord.Embed(
@@ -500,9 +587,7 @@ async def price(interaction: discord.Interaction):
         ),
         color=discord.Color.gold(),
         timestamp=datetime.utcnow()
-
     )
-
     embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")
     embed.set_author(name="📊 Sistema de Precios / Price System", icon_url="https://i.imgur.com/3i1S0cL.png")
 
@@ -523,7 +608,7 @@ async def price(interaction: discord.Interaction):
         embed.add_field(
             name=f"💎 {coins:,} Coins",
             value=f"💸 {robux} Robux\n💵 ${usd}.00 USD",
-            inline=True,
+            inline=True
         )
 
     embed.add_field(name="━━━━━━━━━━━━━━━━━━━━", value="**📦 Servicios Extra / Extra Services**", inline=False)
@@ -531,24 +616,23 @@ async def price(interaction: discord.Interaction):
     embed.add_field(
         name="🧠 Max Account Mojo",
         value="💵 $5.00 USD\n📩 Abre un ticket para comprar.\n📩 Open a ticket to buy.",
-        inline=True,
+        inline=True
     )
 
     embed.add_field(
         name="🍍 Farm de Fruta / Fruit Farm",
         value="📩 Abre un ticket para conocer precios y disponibilidad.\n📩 Open a ticket to check prices and availability.",
-        inline=True,
+        inline=True
     )
 
     embed.set_footer(text="✨ ¡Gracias por elegirnos! / Thanks for choosing us!", icon_url=bot.user.display_avatar.url)
 
-    # Botón para ir al canal
     class GoToChannelView(View):
         def __init__(self):
             super().__init__(timeout=None)
             self.add_item(Button(
-                label="📨 Ir al canal de pedidos",
-                url="https://discord.com/channels/{}/{}/".format(interaction.guild_id, 1373527079382941817),
+                label="📨 Ir al canal de pedidos / Go to orders",
+                url=f"https://discord.com/channels/{interaction.guild_id}/1373527079382941817",  # reemplaza con tu canal real
                 style=discord.ButtonStyle.link
             ))
 
@@ -556,57 +640,79 @@ async def price(interaction: discord.Interaction):
 
 
 
-async def setup(bot):
-    await bot.add_cog(Vouch(bot))
-
-
-@bot.tree.command(name="vouch", description="📝 Deja una calificación y sube pruebas para un vendedor / Leave a rating and upload proof for a seller")
+@tree.command(
+    name="vouch",
+    description="📝 Deja una calificación para un vendedor / Leave a rating for a seller"
+)
 @app_commands.describe(
     usuario="Usuario al que haces vouch / User you're vouching for",
     producto="Producto comprado / Product purchased",
     estrellas="Calificación (1 a 5 estrellas) / Rating (1 to 5 stars)",
-    imagen="Imagen de prueba (opcional) / Proof image (optional)"
+    imagen="Imagen de prueba (opcional) / Proof image (optional)",
+    anonimo="Si quieres que tu nombre no aparezca / If you want to remain anonymous"
 )
 async def vouch(
     interaction: discord.Interaction,
     usuario: discord.Member,
     producto: str,
     estrellas: int,
-    imagen: discord.Attachment = None
+    imagen: Optional[discord.Attachment] = None,
+    anonimo: Optional[bool] = False
 ):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Comando no disponible aquí. / Command not available here.",
+            ephemeral=True
+        )
         return
 
     if estrellas < 1 or estrellas > 5:
-        await interaction.response.send_message("❌ La calificación debe estar entre 1 y 5 estrellas. / Rating must be between 1 and 5 stars.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ La calificación debe estar entre 1 y 5 estrellas. / Rating must be between 1 and 5 stars.",
+            ephemeral=True
+        )
         return
 
     estrellas_str = "⭐" * estrellas + "☆" * (5 - estrellas)
 
+    author_display = "❓ Unknown / Anónimo" if anonimo else interaction.user.mention
+
     embed = discord.Embed(
         title="🧾 Nuevo Vouch Recibido / New Vouch Received",
         description=(
-            f"**👤 Vouch por / From:** {interaction.user.mention}\n"
+            f"**👤 Vouch por / From:** {author_display}\n"
             f"**🙋‍♂️ Para / For:** {usuario.mention}\n"
             f"**📦 Producto / Product:** {producto}\n"
             f"**⭐ Calificación / Rating:** {estrellas_str}"
         ),
         color=discord.Color.gold(),
         timestamp=datetime.utcnow()
-
     )
     embed.set_footer(text="Sistema de Ventas | Sales System", icon_url=bot.user.display_avatar.url)
 
     if imagen:
         embed.set_image(url=imagen.url)
 
-    # Responde primero al slash command
-    await interaction.response.send_message("✅ Vouch enviado correctamente / Vouch successfully submitted", ephemeral=True)
+    await interaction.response.send_message(
+        "✅ Vouch enviado correctamente. / Vouch successfully submitted.",
+        ephemeral=True
+    )
 
-    # Envía el mensaje públicamente con el embed y guarda el mensaje para reaccionar
-    message = await interaction.channel.send(embed=embed)
-    await message.add_reaction("❤️")
+    vouch_channel = interaction.guild.get_channel(vouch_channel_id)
+    if not vouch_channel:
+        await interaction.followup.send("⚠️ Canal de vouches no encontrado. / Vouch channel not found.", ephemeral=True)
+        return
+
+    msg = await vouch_channel.send(embed=embed)
+    await msg.add_reaction("❤️")
+
+    # Log privado (si tienes un canal configurado)
+    if vouch_log_channel_id:
+        log_channel = interaction.guild.get_channel(vouch_log_channel_id)
+        if log_channel:
+            await log_channel.send(
+                f"📥 Nuevo vouch registrado por {interaction.user} para {usuario}.\nProducto: {producto}, Estrellas: {estrellas}\nAnonimato: {'Sí' if anonimo else 'No'}"
+            )
 
 
 @bot.tree.command(name="ruleta", description="🎲 Sortea un premio entre los miembros del servidor")
@@ -754,34 +860,49 @@ async def pases(interaction: discord.Interaction):
 async def rules(interaction: discord.Interaction):
     embed = discord.Embed(
         title="📜 REGLAS & TÉRMINOS / RULES & TERMS",
-        description=(
-            "🔒 **100% Seguro | 100% Safe**\n"
-            "✅ Transacciones rápidas y verificadas.\n"
-            "✅ Staff atento y sistema profesional.\n\n"
-            "⚠️ **Reglas Importantes / Important Rules:**\n"
-            "1️⃣ No se hacen reembolsos después de entregar los ítems.\n"
-            "2️⃣ Todo pago debe estar acompañado de evidencia clara.\n"
-            "3️⃣ Abre un ticket para cualquier problema o consulta.\n"
-            "4️⃣ Está prohibido hacer spam, insultar o faltar al respeto.\n"
-            "5️⃣ Al pagar, aceptas automáticamente estos términos.\n\n"
-            "💬 **¿Dudas? Usa los botones de abajo.**\n"
-            "---\n"
-            "🔒 **100% Safe Purchases**\n"
-            "✅ Fast and verified transactions.\n"
-            "✅ Professional system and responsive staff.\n\n"
-            "⚠️ **Rules:**\n"
-            "1️⃣ No refunds after items are delivered.\n"
-            "2️⃣ Every payment must be accompanied by proof.\n"
-            "3️⃣ Open a ticket for issues or questions.\n"
-            "4️⃣ Spamming, insults or disrespect are not allowed.\n"
-            "5️⃣ By paying, you agree to these terms.\n\n"
-            "📌 Presiona un botón abajo para navegar."
-        ),
         color=discord.Color.orange(),
         timestamp=datetime.utcnow()
     )
-    embed.set_footer(text="Sistema de Seguridad y Reglas / Rules & Safe System", icon_url=interaction.client.user.display_avatar.url)
+
+    embed.set_author(name="⚖️ Sistema de Seguridad / Safety System", icon_url=interaction.client.user.display_avatar.url)
     embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")
+
+    embed.add_field(
+        name="🛡️ Español / Spanish",
+        value=(
+            "🔒 **100% Seguro**\n"
+            "✅ Transacciones rápidas y verificadas\n"
+            "✅ Staff atento y sistema profesional\n\n"
+            "**📌 Reglas Importantes:**\n"
+            "1️⃣ No hay reembolsos tras la entrega del producto.\n"
+            "2️⃣ Todo pago debe tener prueba clara (screenshot o comprobante).\n"
+            "3️⃣ Usa un ticket para soporte o preguntas.\n"
+            "4️⃣ Prohibido el spam, insultos o faltas de respeto.\n"
+            "5️⃣ Al pagar, aceptas automáticamente estos términos."
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="🌍 English / Inglés",
+        value=(
+            "🔒 **100% Safe**\n"
+            "✅ Fast and verified transactions\n"
+            "✅ Professional staff and system\n\n"
+            "**📌 Important Rules:**\n"
+            "1️⃣ No refunds after items are delivered.\n"
+            "2️⃣ Every payment must include clear proof (screenshot or receipt).\n"
+            "3️⃣ Use a ticket for support or questions.\n"
+            "4️⃣ Spamming, insults or disrespect are not allowed.\n"
+            "5️⃣ By paying, you automatically agree to these terms."
+        ),
+        inline=False
+    )
+
+    embed.set_footer(
+        text="📌 Presiona un botón abajo para navegar / Press a button below to navigate",
+        icon_url=interaction.client.user.display_avatar.url
+    )
 
     class RulesView(View):
         def __init__(self):
@@ -806,6 +927,7 @@ async def rules(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, view=RulesView(), ephemeral=False)
 
 
+
 @bot.tree.command(name="r", description="💵 Muestra los precios de los Robux en inglés y español")
 async def robux_prices(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
@@ -827,6 +949,10 @@ async def robux_prices(interaction: discord.Interaction):
     )
     embed.set_footer(text="Robux Info | Miluty", icon_url=bot.user.display_avatar.url)
     await interaction.response.send_message(embed=embed)
+from discord import app_commands
+from discord.ui import View, Button
+
+# RANKING DE COMPRAS
 @tree.command(
     name="ranking",
     description="📊 Muestra el ranking de usuarios por compras / Show purchase ranking",
@@ -841,46 +967,21 @@ async def ranking(interaction: discord.Interaction):
     sorted_purchases = sorted(purchases.items(), key=lambda x: x[1], reverse=True)[:10]
 
     embed = discord.Embed(
-        title="🏆 Ranking de Compras / Purchase Ranking",
+        title="🏆 RANKING DE COMPRAS / PURCHASE RANKING",
+        description="📊 Los 10 usuarios con más compras realizadas.\n📊 Top 10 users with most purchases.",
         color=discord.Color.gold(),
         timestamp=datetime.utcnow()
     )
 
-    description = ""
     for i, (user_id, total) in enumerate(sorted_purchases, start=1):
         member = interaction.guild.get_member(int(user_id))
-        name = member.display_name if member else f"User ID {user_id}"
-        description += f"**{i}. {name}** — {total} compras\n"
+        name = member.display_name if member else f"👤 Desconocido / Unknown ({user_id})"
+        embed.add_field(name=f"#{i} {name}", value=f"🛒 **{total} compras / purchases**", inline=False)
 
-    embed.description = description
-    embed.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
-
+    embed.set_footer(text="Sistema de Ventas | Sales System", icon_url=bot.user.display_avatar.url)
     await interaction.response.send_message(embed=embed)
-@tree.command(
-    name="addpurchase",
-    description="➕ Añade compras manualmente a un usuario / Add purchases manually to a user",
-    guild=discord.Object(id=server_configs[0])
-)
-@app_commands.describe(
-    user="Usuario a quien añadir compras / User to add purchases",
-    amount="Cantidad a añadir / Amount to add"
-)
-async def addpurchase(interaction: discord.Interaction, user: discord.Member, amount: int):
-    # Verifica permisos - ajusta según necesidad
-    if not interaction.user.guild_permissions.manage_guild:
-        await interaction.response.send_message("❌ No tienes permisos para usar este comando.", ephemeral=True)
-        return
 
-    if amount <= 0:
-        await interaction.response.send_message("❌ La cantidad debe ser mayor que cero.", ephemeral=True)
-        return
-
-    data_manager.add_user_purchase(user.id, amount)
-
-    await interaction.response.send_message(
-        f"✅ Se añadieron {amount} compras a {user.mention}.",
-        ephemeral=True
-    )
+# PERFIL DE USUARIO
 @tree.command(
     name="profile",
     description="👤 Muestra el perfil de compras de un usuario / Show user purchase profile",
@@ -894,16 +995,107 @@ async def profile(interaction: discord.Interaction, user: discord.Member = None)
     total_purchases = data_manager.get_user_purchases(user.id)
 
     embed = discord.Embed(
-        title=f"Perfil de Compras / Purchase Profile — {user.display_name}",
+        title="👤 PERFIL DE COMPRAS / PURCHASE PROFILE",
         color=discord.Color.blue(),
         timestamp=datetime.utcnow()
     )
-
-    embed.add_field(name="🛒 Total de compras / Total Purchases", value=str(total_purchases), inline=False)
+    embed.add_field(name="🙋 Usuario / User", value=f"{user.mention}", inline=True)
+    embed.add_field(name="🛒 Total Compras / Total Purchases", value=str(total_purchases), inline=True)
     embed.set_thumbnail(url=user.display_avatar.url)
-    embed.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
+    embed.set_footer(text="Sistema de Ventas | Sales System", icon_url=bot.user.display_avatar.url)
 
     await interaction.response.send_message(embed=embed)
+
+# AGREGAR COMPRAS
+@tree.command(
+    name="addpurchase",
+    description="➕ Añade compras manualmente a un usuario / Add purchases manually to a user",
+    guild=discord.Object(id=server_configs[0])
+)
+@app_commands.describe(
+    user="Usuario al que añadir compras / User to add purchases",
+    amount="Cantidad a añadir / Amount to add"
+)
+async def addpurchase(interaction: discord.Interaction, user: discord.Member, amount: int):
+    if not interaction.user.guild_permissions.manage_guild:
+        await interaction.response.send_message("❌ No tienes permisos para usar este comando. / You don't have permission.", ephemeral=True)
+        return
+
+    if amount <= 0:
+        await interaction.response.send_message("❌ La cantidad debe ser mayor que cero. / Amount must be greater than 0.", ephemeral=True)
+        return
+
+    data_manager.add_user_purchase(user.id, amount)
+
+    await interaction.response.send_message(
+        f"✅ Se añadieron **{amount} compras** a {user.mention}.\n"
+        f"✅ **{amount} purchases** added to {user.mention}.",
+        ephemeral=True
+    )
+
+    # Log privado opcional
+    log_channel = discord.utils.get(interaction.guild.text_channels, name="vouch-logs")
+    if log_channel:
+        embed = discord.Embed(
+            title="🛠️ Registro de Compra Manual / Manual Purchase Log",
+            description=(
+                f"👤 **Mod/Admin:** {interaction.user.mention}\n"
+                f"🙋 **Usuario:** {user.mention}\n"
+                f"➕ **Compras añadidas / Purchases added:** {amount}"
+            ),
+            color=discord.Color.orange(),
+            timestamp=datetime.utcnow()
+        )
+        embed.set_footer(text="Sistema de Ventas | Sales System", icon_url=bot.user.display_avatar.url)
+        await log_channel.send(embed=embed)
+@tree.command(
+    name="removepurchase",
+    description="➖ Quita compras manualmente a un usuario / Remove purchases manually from a user",
+    guild=discord.Object(id=server_configs[0])
+)
+@app_commands.describe(
+    user="Usuario al que quitar compras / User to remove purchases",
+    amount="Cantidad a quitar / Amount to remove"
+)
+async def removepurchase(interaction: discord.Interaction, user: discord.Member, amount: int):
+    if not interaction.user.guild_permissions.manage_guild:
+        await interaction.response.send_message("❌ No tienes permisos para usar este comando. / You don't have permission.", ephemeral=True)
+        return
+
+    if amount <= 0:
+        await interaction.response.send_message("❌ La cantidad debe ser mayor que cero. / Amount must be greater than 0.", ephemeral=True)
+        return
+
+    current = data_manager.get_user_purchases(user.id)
+    if current <= 0:
+        await interaction.response.send_message("⚠️ Este usuario no tiene compras registradas. / This user has no purchases recorded.", ephemeral=True)
+        return
+
+    new_total = max(0, current - amount)
+    data_manager.set_user_purchases(user.id, new_total)
+
+    await interaction.response.send_message(
+        f"✅ Se quitaron **{amount} compras** a {user.mention}.\n"
+        f"✅ **{amount} purchases** removed from {user.mention}.",
+        ephemeral=True
+    )
+
+    # Log privado (si existe el canal "vouch-logs")
+    log_channel = discord.utils.get(interaction.guild.text_channels, name="vouch-logs")
+    if log_channel:
+        embed = discord.Embed(
+            title="🗑️ Registro de Resta de Compras / Purchase Removal Log",
+            description=(
+                f"👤 **Mod/Admin:** {interaction.user.mention}\n"
+                f"🙋 **Usuario:** {user.mention}\n"
+                f"➖ **Compras quitadas / Purchases removed:** {amount}\n"
+                f"🔢 **Nuevo total / New total:** {new_total}"
+            ),
+            color=discord.Color.red(),
+            timestamp=datetime.utcnow()
+        )
+        embed.set_footer(text="Sistema de Ventas | Sales System", icon_url=bot.user.display_avatar.url)
+        await log_channel.send(embed=embed)
 
 class DescuentoModal(ui.Modal, title="💸 Anuncio de Descuento"):
     producto = ui.TextInput(
@@ -967,50 +1159,6 @@ async def anuncio_descuento(interaction: discord.Interaction):
         return
 
     await interaction.response.send_modal(DescuentoModal())
-
-
-
-
-@tree.command(
-    name="removercompra",
-    description="🗑️ Remueve una compra manualmente de un usuario / Remove a user's purchase manually",
-    guild=discord.Object(id=server_configs[0])
-)
-@discord.app_commands.describe(
-    user="Usuario a quien se le removerá la compra",
-    producto="Producto a remover",
-    cantidad="Cantidad a remover"
-)
-@discord.app_commands.checks.has_permissions(administrator=True)
-async def removercompra(interaction: discord.Interaction, user: discord.User, producto: str, cantidad: int):
-    if interaction.guild_id not in server_configs:
-        await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
-        return
-
-    # Verificamos que la compra exista
-    user_id = str(user.id)
-
-    if user_id not in data_manager.data["user_purchases"]:
-        await interaction.response.send_message(f"❌ El usuario {user.mention} no tiene compras registradas. / This user has no purchases registered.", ephemeral=True)
-        return
-
-    compras = data_manager.data["user_purchases"][user_id]
-    encontrado = False
-    for compra in compras:
-        if compra["producto"].lower() == producto.lower() and compra["cantidad"] == cantidad:
-            compras.remove(compra)
-            encontrado = True
-            break
-
-    if not encontrado:
-        await interaction.response.send_message(f"❌ No se encontró la compra con ese producto y cantidad para {user.mention}. / Purchase not found for that product and amount.", ephemeral=True)
-        return
-
-    # Guardar cambios
-    data_manager.save()
-
-    await interaction.response.send_message(f"✅ Compra removida correctamente para {user.mention}.\nProducto: {producto}\nCantidad: {cantidad}", ephemeral=True)
-
 
 
 @tree.command(
