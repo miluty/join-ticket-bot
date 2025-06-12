@@ -1273,9 +1273,14 @@ class GiveawayModal(ui.Modal, title="🎉 Crear Sorteo / Create Giveaway"):
         required=True,
         max_length=100
     )
+    roles = ui.TextInput(
+        label="Roles que pueden participar / Allowed Roles",
+        placeholder="IDs separados por coma / IDs separated by comma",
+        required=False,
+        max_length=300
+    )
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Validaciones básicas
         try:
             duracion_min = int(self.duracion.value)
             ganadores_num = int(self.ganadores.value)
@@ -1286,35 +1291,47 @@ class GiveawayModal(ui.Modal, title="🎉 Crear Sorteo / Create Giveaway"):
             await interaction.response.send_message("❌ Duración y ganadores deben ser números válidos.", ephemeral=True)
             return
 
-        # Buscar canal
         canal_obj = discord.utils.get(interaction.guild.channels, name=self.canal.value.strip("#<> "))
         if not canal_obj or not isinstance(canal_obj, discord.TextChannel):
             await interaction.response.send_message("❌ No encontré el canal especificado o no es un canal de texto válido.", ephemeral=True)
             return
 
-        # Crear embed animado y mensaje de sorteo
+        allowed_role_ids = []
+        if self.roles.value:
+            try:
+                allowed_role_ids = [int(r.strip()) for r in self.roles.value.split(",") if r.strip().isdigit()]
+            except Exception:
+                await interaction.response.send_message("❌ Error al procesar los roles permitidos.", ephemeral=True)
+                return
+
+        # Mensaje inicial
         embed = discord.Embed(
             title="🎉 ¡Sorteo en curso! / Giveaway Started!",
             description=(
-                f"**Premio / Prize:** {self.premio.value}\n"
-                f"**Duración / Duration:** {duracion_min} minutos\n"
-                f"**Ganadores / Winners:** {ganadores_num}\n\n"
-                "🎉 ¡Reacciona con 🎉 para participar! / React with 🎉 to enter!"
+                f"**🏆 Premio / Prize:** {self.premio.value}\n"
+                f"**⏱ Tiempo restante / Time Remaining:** {duracion_min}m\n"
+                f"**👥 Ganadores / Winners:** {ganadores_num}\n"
+                f"🎉 ¡Reacciona con 🎉 para participar!"
             ),
             color=0xFFD700,
-            timestamp=discord.utils.utcnow()
+            timestamp=datetime.utcnow()
         )
         embed.set_footer(text=f"Creado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
 
         giveaway_msg = await canal_obj.send(embed=embed)
         await giveaway_msg.add_reaction("🎉")
 
-        await interaction.response.send_message(f"✅ Sorteo creado correctamente en {canal_obj.mention}", ephemeral=True)
+        await interaction.response.send_message(f"✅ Sorteo creado en {canal_obj.mention}", ephemeral=True)
 
-        # Esperar el tiempo del sorteo
-        await asyncio.sleep(duracion_min * 60)
+        # Actualizar mensaje cada minuto
+        for i in range(duracion_min - 1, 0, -1):
+            await asyncio.sleep(60)
+            embed.set_field_at(0, name="⏱ Tiempo restante / Time Remaining", value=f"{i}m", inline=False)
+            await giveaway_msg.edit(embed=embed)
 
-        # Obtener los usuarios que reaccionaron 🎉 (sin bots y sin el autor del sorteo)
+        await asyncio.sleep(60)  # último minuto
+
+        # Obtener usuarios que reaccionaron
         message = await canal_obj.fetch_message(giveaway_msg.id)
         reaction = discord.utils.get(message.reactions, emoji="🎉")
         if not reaction:
@@ -1322,32 +1339,35 @@ class GiveawayModal(ui.Modal, title="🎉 Crear Sorteo / Create Giveaway"):
             return
 
         users = await reaction.users().flatten()
-        users = [user for user in users if not user.bot and user != interaction.user]
+        users = [u for u in users if not u.bot and u != interaction.user]
+
+        if allowed_role_ids:
+            def tiene_rol(user):
+                miembro = interaction.guild.get_member(user.id)
+                return miembro and any(role.id in allowed_role_ids for role in miembro.roles)
+            users = [u for u in users if tiene_rol(u)]
 
         if len(users) == 0:
-            await canal_obj.send("⚠️ No hubo participantes válidos para el sorteo.")
+            await canal_obj.send("⚠️ No hubo participantes válidos.")
             return
 
-        # Seleccionar ganadores aleatorios
         winners = random.sample(users, min(ganadores_num, len(users)))
+        winner_mentions = ", ".join(w.mention for w in winners)
 
-        winner_mentions = ", ".join(winner.mention for winner in winners)
         await canal_obj.send(f"🎉 ¡Felicidades {winner_mentions}! Has ganado: **{self.premio.value}** 🎉")
 
-        # Editar mensaje original para indicar que terminó
-        ended_embed = discord.Embed(
-            title="🎉 Sorteo finalizado / Giveaway Ended",
+        final_embed = discord.Embed(
+            title="🎉 Sorteo Finalizado / Giveaway Ended",
             description=(
-                f"**Premio / Prize:** {self.premio.value}\n"
-                f"**Ganadores / Winners:** {winner_mentions}\n\n"
-                "Gracias por participar! / Thanks for joining!"
+                f"**🏆 Premio / Prize:** {self.premio.value}\n"
+                f"**🎉 Ganadores / Winners:** {winner_mentions}\n\n"
+                "Gracias por participar / Thanks for joining!"
             ),
             color=0xFF4500,
             timestamp=datetime.utcnow()
         )
-        ended_embed.set_footer(text=f"Creado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
-        await giveaway_msg.edit(embed=ended_embed)
-
+        final_embed.set_footer(text=f"Creado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
+        await giveaway_msg.edit(embed=final_embed)
 @tree.command(
     name="giveaway",
     description="🎉 Crear un sorteo avanzado / Create an advanced giveaway",
@@ -1359,8 +1379,8 @@ async def giveaway(interaction: discord.Interaction):
         await interaction.response.send_message("❌ Comando no disponible aquí / Command not available here.", ephemeral=True)
         return
 
-    modal = GiveawayModal()
-    await interaction.response.send_modal(modal)
+    await interaction.response.send_modal(GiveawayModal())
+
 
 
 
