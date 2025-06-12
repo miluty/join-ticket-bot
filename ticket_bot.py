@@ -250,22 +250,6 @@ class SaleModal(discord.ui.Modal, title="🍆 Compra / Purchase Details"):
         await canal.send(content=interaction.user.mention, embed=embed, view=claim_view)
         await interaction.response.send_message(f"✅ Ticket creado: {canal.mention} / Ticket created", ephemeral=True)
        
-log_channel = interaction.guild.get_channel(log_channel_id)
-if log_channel:
-    resumen_embed = discord.Embed(
-        title="📝 Nuevo Ticket Creado / New Ticket Created",
-        description=(
-            f"👤 **Cliente:** {interaction.user} (`{interaction.user.id}`)\n"
-            f"📦 **Producto:** {producto_str}\n"
-            f"🔢 **Cantidad:** {cantidad_int}\n"
-            f"💳 **Método de Pago:** {self.metodo_pago.value}\n"
-            f"📁 **Canal:** {canal.mention}"
-        ),
-        color=discord.Color.blue(),
-        timestamp=datetime.utcnow()
-    )
-    resumen_embed.set_footer(text="Log de Tickets", icon_url=bot.user.display_avatar.url)
-    await log_channel.send(embed=resumen_embed)
 
 
 
