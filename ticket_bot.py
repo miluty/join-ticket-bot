@@ -736,17 +736,20 @@ async def vouch(
             f"Anonimato: {'Sí' if anonimo else 'No'}\n"
             f"🔢 Total actual de vouches: {vouch_counter[user_id]}"
         )
+
 @tree.command(
     name="checkvouch",
     description="🔎 Ver cuántos vouches tiene un usuario / Check how many vouches a user has"
 )
 @app_commands.describe(
-    usuario="Usuario al que quieres revisar / User to check"
+    usuario="Usuario al que quieres consultar / User you want to check"
 )
 async def checkvouch(interaction: discord.Interaction, usuario: discord.Member):
+    global vouch_counter
+
     if interaction.guild_id not in server_configs:
         await interaction.response.send_message(
-            "❌ Comando no permitido aquí. / Command not allowed here.",
+            "❌ Comando no disponible aquí. / Command not available here.",
             ephemeral=True
         )
         return
@@ -754,14 +757,17 @@ async def checkvouch(interaction: discord.Interaction, usuario: discord.Member):
     total = vouch_counter.get(usuario.id, 0)
 
     embed = discord.Embed(
-        title="📊 Revisión de Vouches / Vouch Check",
-        description=f"🙋‍♂️ Usuario / User: {usuario.mention}\n🔢 Total de Vouches: **{total}**",
+        title="🔎 Consulta de Vouches / Vouch Lookup",
+        description=(
+            f"👤 Usuario / User: {usuario.mention}\n"
+            f"🔢 Total de vouches / Total vouches: **{total}**"
+        ),
         color=discord.Color.blue(),
         timestamp=datetime.utcnow()
     )
-    embed.set_footer(text="Sistema de Vouches | Vouch System", icon_url=bot.user.display_avatar.url)
+    embed.set_footer(text="Sistema de Ventas | Sales System", icon_url=bot.user.display_avatar.url)
 
-    await interaction.response.send_message(embed=embed, ephemeral=False)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 @bot.tree.command(name="ruleta", description="🎲 Sortea un premio entre los miembros del servidor")
