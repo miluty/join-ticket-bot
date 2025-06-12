@@ -131,7 +131,7 @@ class DataManager:
 
 data_manager = DataManager()
 
-class SaleModal(discord.ui.Modal, title="🍆 Compra / Purchase Details"):
+class SaleModal(discord.ui.Modal, title="🛒 Compra / Purchase Details"):
     def __init__(self, tipo: str, data_manager: DataManager):
         super().__init__(timeout=None)
         self.tipo = tipo
@@ -150,6 +150,7 @@ class SaleModal(discord.ui.Modal, title="🍆 Compra / Purchase Details"):
             max_length=10,
             required=True
         )
+
         self.metodo_pago = discord.ui.TextInput(
             label="💳 Método de Pago / Payment Method",
             placeholder="Ej: PayPal, Robux... / Ex: PayPal, Robux...",
@@ -182,14 +183,13 @@ class SaleModal(discord.ui.Modal, title="🍆 Compra / Purchase Details"):
 
         self.data_manager.reduce_stock(self.tipo, cantidad_int)
 
-        # Cálculo del precio si es Coins
+        # Cálculo de precio si es Coins
         usd_equivalente = None
         robux_equivalente = None
         if self.tipo == "coins":
             usd_equivalente = round(cantidad_int / 50000, 2)
             robux_equivalente = round((cantidad_int / 50000) * 140)
 
-        # Preparar texto de precio para mostrar en el embed
         precio_str = ""
         if usd_equivalente is not None:
             precio_str = (
@@ -198,7 +198,7 @@ class SaleModal(discord.ui.Modal, title="🍆 Compra / Purchase Details"):
                 f"• **Robux:** {robux_equivalente} R$"
             )
 
-        # Crear el canal del ticket
+        # Crear canal
         overwrites = {
             interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
             interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
@@ -227,7 +227,9 @@ class SaleModal(discord.ui.Modal, title="🍆 Compra / Purchase Details"):
             "producto": producto_str,
             "cantidad": str(cantidad_int),
             "metodo": self.metodo_pago.value,
-            "cliente_id": str(interaction.user.id)
+            "cliente_id": str(interaction.user.id),
+            "precio_usd": str(usd_equivalente) if usd_equivalente is not None else "",
+            "precio_robux": str(robux_equivalente) if robux_equivalente is not None else ""
         })
 
         claim_view = ClaimView(canal, self.data_manager)
@@ -249,50 +251,65 @@ class SaleModal(discord.ui.Modal, title="🍆 Compra / Purchase Details"):
 
         await canal.send(content=interaction.user.mention, embed=embed, view=claim_view)
         await interaction.response.send_message(f"✅ Ticket creado: {canal.mention} / Ticket created", ephemeral=True)
-       
+
 
 
 
 class ClaimView(discord.ui.View):
-    def __init__(self, channel: discord.TextChannel, data_manager: DataManager):
+    def __init__(self, canal: discord.TextChannel, data_manager: DataManager):
         super().__init__(timeout=None)
-        self.channel = channel
+        self.canal = canal
         self.data_manager = data_manager
+        self.claimed_by = None
 
-    @discord.ui.button(label="🎟️ Reclamar Ticket / Claim Ticket", style=discord.ButtonStyle.primary, emoji="🛠️")
+    @discord.ui.button(label="📥 Reclamar / Claim", style=discord.ButtonStyle.green, custom_id="claim_button")
     async def claim_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        channel_id = self.channel.id
-        ticket_info = self.data_manager.get_ticket(channel_id)
-
-        if not ticket_info:
-            await interaction.response.send_message("❌ Este ticket no tiene información registrada.", ephemeral=True)
+        if self.claimed_by:
+            await interaction.response.send_message(
+                f"⚠️ Este ticket ya ha sido reclamado por <@{self.claimed_by}> / This ticket has already been claimed.",
+                ephemeral=True
+            )
             return
 
-        cliente_id = ticket_info.get("cliente_id")
+        self.claimed_by = interaction.user.id
 
-        if str(interaction.user.id) == str(cliente_id):
-            await interaction.response.send_message("❌ No puedes reclamar tu propio ticket.", ephemeral=True)
-            return
-
-        if self.data_manager.get_claimed(channel_id):
-            await interaction.response.send_message("❌ Este ticket ya fue reclamado por otro miembro del staff.", ephemeral=True)
-            return
-
-        self.data_manager.set_claimed(channel_id, interaction.user.id)
-
-        embed_claim = discord.Embed(
-            title="🔧 Ticket Reclamado / Ticket Claimed",
-            description=(
-                f"🛠️ **Reclamado por / Claimed by:** {interaction.user.mention}\n"
-                f"🧾 **Cliente / Client:** <@{cliente_id}>"
-            ),
-            color=discord.Color.blurple(),
-            timestamp=datetime.utcnow()
+        await interaction.response.send_message(
+            f"📌 Has reclamado este ticket. / You have claimed this ticket.",
+            ephemeral=True
         )
-        embed_claim.set_footer(text="Sistema de Tickets | Ticket System", icon_url=bot.user.display_avatar.url)
 
-        await interaction.response.edit_message(embed=embed_claim, view=None)
-        await self.channel.send(f"🛠️ {interaction.user.mention} ha reclamado este ticket.")
+        await self.canal.send(
+            f"✅ El ticket ha sido reclamado por {interaction.user.mention}.\n"
+            f"🔒 Solo este usuario debe gestionarlo. / Only this user should handle it."
+        )
+
+    @discord.ui.button(label="❌ Cerrar / Close", style=discord.ButtonStyle.red, custom_id="close_button")
+    async def close_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self.claimed_by:
+            await interaction.response.send_message(
+                "⚠️ Este ticket no ha sido reclamado aún. / This ticket hasn't been claimed yet.",
+                ephemeral=True
+            )
+            return
+
+        if interaction.user.id != self.claimed_by:
+            await interaction.response.send_message(
+                "⛔ Solo el que reclamó este ticket puede cerrarlo. / Only the claimer can close this ticket.",
+                ephemeral=True
+            )
+            return
+
+        # Eliminar info del ticket en el sistema
+        self.data_manager.remove_ticket(self.canal.id)
+
+        await interaction.response.send_message(
+            "✅ Ticket cerrado. / Ticket closed.",
+            ephemeral=True
+        )
+        await self.canal.send("🔒 Este ticket será eliminado en 5 segundos... / This ticket will be deleted in 5 seconds.")
+
+        await asyncio.sleep(5)
+        await self.canal.delete()
 
 
 class PanelView(discord.ui.View):
@@ -343,7 +360,7 @@ class PanelView(discord.ui.View):
 @tree.command(
     name="panel",
     description="📩 Muestra el panel de tickets / Show the ticket panel",
-    guild=discord.Object(id=server_configs[0])  # Asegura que solo esté disponible en el servidor autorizado
+    guild=discord.Object(id=server_configs[0])  # Ajusta si es global o de test
 )
 async def panel(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
@@ -356,26 +373,32 @@ async def panel(interaction: discord.Interaction):
     embed = discord.Embed(
         title="🎋 Sistema de Tickets de Venta / Sales Ticket System",
         description=(
-            "👋 **Bienvenido al sistema de tickets**\n"
-            "Welcome to the **ticket system**\n\n"
-            "💼 **Selecciona el producto que deseas comprar**\n"
-            "**Select the product you want to buy** usando el menú desplegable.\n\n"
-            "💳 **Métodos de pago aceptados** / **Accepted payment methods:**\n"
-            "• 💸 **PayPal**\n"
-            "• 🎮 **Robux**\n"
-            "• 🎁 **Giftcard**\n\n"
-            "📩 Pulsa el menú para continuar.\n"
-            "**Click the dropdown to continue.**"
+            "👋 **Bienvenido al sistema de tickets** / Welcome to the ticket system\n\n"
+            "💼 Selecciona el producto que deseas comprar / Select the product you want to buy\n"
+            "💳 Métodos aceptados / Accepted methods:\n"
+            "**• PayPal**\n"
+            "**• Robux**\n"
+            "**• Giftcard**\n\n"
+            "📩 Pulsa el menú desplegable para continuar / Use the dropdown menu to continue."
         ),
-        color=discord.Color.from_rgb(46, 204, 113),
+        color=discord.Color.green(),
         timestamp=datetime.utcnow()
     )
     embed.set_footer(
-        text="📦 Sistema de Tickets | Ticket System",
+        text="Sistema de Tickets | Ticket System",
         icon_url=bot.user.display_avatar.url
     )
 
-    await interaction.response.send_message(embed=embed, view=PanelView(data_manager), ephemeral=True)
+    # Envía el mensaje públicamente en el canal, sin mostrar al usuario que lo ejecutó
+    await interaction.channel.send(embed=embed, view=PanelView(data_manager))
+
+    # Opcionalmente elimina el comando del usuario si quieres ocultar su uso
+    try:
+        await interaction.response.send_message("✅ Panel enviado.", ephemeral=True)
+        await interaction.delete_original_response()
+    except:
+        pass
+
 
 
 
