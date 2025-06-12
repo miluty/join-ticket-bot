@@ -1250,34 +1250,34 @@ async def grupo(interaction: discord.Interaction):
 
 class GiveawayModal(ui.Modal, title="🎉 Crear Sorteo / Create Giveaway"):
     canal = ui.TextInput(
-        label="Canal para el sorteo / Giveaway Channel",
+        label="Canal del sorteo / Channel",  # ✅ MENOS de 45
         placeholder="#canal",
         required=True,
         max_length=100
     )
     duracion = ui.TextInput(
-        label="Duración en minutos / Duration (minutes)",
-        placeholder="Ejemplo: 10",
+        label="Duración (1h10m5s)",  # ✅ MENOS de 45
+        placeholder="Ej: 1h10m / 30s",
         required=True,
-        max_length=5
+        max_length=10
     )
     ganadores = ui.TextInput(
-        label="Número de ganadores / Number of winners",
+        label="Cantidad de ganadores",  # ✅ MENOS de 45
         placeholder="Ejemplo: 1",
         required=True,
         max_length=2
     )
     premio = ui.TextInput(
-        label="Premio / Prize",
+        label="Premio / Prize",  # ✅ MENOS de 45
         placeholder="Ejemplo: 100 Robux",
         required=True,
         max_length=100
     )
     roles = ui.TextInput(
-        label="Roles permitidos (opcional) / Allowed roles (optional)",
-        placeholder="@VIP, @Comprador",
+        label="Roles permitidos (IDs separados por coma)",  # ⚠️ ESTE estaba muy largo
+        placeholder="Opcional: 123,456",
         required=False,
-        max_length=200
+        max_length=150
     )
 
     async def on_submit(self, interaction: discord.Interaction):
