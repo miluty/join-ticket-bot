@@ -360,12 +360,12 @@ class PanelView(discord.ui.View):
 @tree.command(
     name="panel",
     description="📩 Muestra el panel de tickets / Show the ticket panel",
-    guild=discord.Object(id=server_configs[0])  # Ajusta si es global o de test
+    guild=discord.Object(id=server_configs[0])  # Ajusta si usas multi-servidores
 )
 async def panel(interaction: discord.Interaction):
     if interaction.guild_id not in server_configs:
         await interaction.response.send_message(
-            "❌ Este comando solo está disponible en servidores autorizados. / This command is only available in authorized servers.",
+            "❌ Este comando no está autorizado aquí. / This command is not allowed here.",
             ephemeral=True
         )
         return
@@ -389,15 +389,19 @@ async def panel(interaction: discord.Interaction):
         icon_url=bot.user.display_avatar.url
     )
 
-    # Envía el mensaje públicamente en el canal, sin mostrar al usuario que lo ejecutó
-    await interaction.channel.send(embed=embed, view=PanelView(data_manager))
+    # Envía el embed + vista al canal de forma pública
+    panel_view = PanelView(data_manager)
+    message = await interaction.channel.send(embed=embed, view=panel_view)
 
-    # Opcionalmente elimina el comando del usuario si quieres ocultar su uso
+    # Si deseas anclar el panel automáticamente:
     try:
-        await interaction.response.send_message("✅ Panel enviado.", ephemeral=True)
-        await interaction.delete_original_response()
-    except:
-        pass
+        await message.pin()
+    except discord.Forbidden:
+        pass  # Si no tiene permisos para fijar
+
+    # Confirma al admin de forma privada
+    await interaction.response.send_message("✅ Panel enviado al canal.", ephemeral=True)
+
 
 
 
