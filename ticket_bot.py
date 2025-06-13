@@ -693,7 +693,6 @@ async def vouch(
         )
         return
 
-    # Incrementar el contador del usuario
     user_id = usuario.id
     vouch_counter[user_id] = vouch_counter.get(user_id, 0) + 1
 
@@ -717,15 +716,14 @@ async def vouch(
     if imagen:
         embed.set_image(url=imagen.url)
 
+    # Confirmación privada al usuario
     await interaction.response.send_message(
         "✅ Vouch enviado correctamente. / Vouch successfully submitted.",
         ephemeral=True
     )
 
-    vouch_channel = interaction.guild.get_channel(vouch_channel_id)
-    if vouch_channel:
-        msg = await vouch_channel.send(embed=embed)
-        await msg.add_reaction("❤️")
+    # Enviar embed al canal donde se usó el comando
+    await interaction.channel.send(embed=embed)
 
     # Log privado
     log_channel = interaction.guild.get_channel(1382521684405518437)
@@ -737,37 +735,8 @@ async def vouch(
             f"🔢 Total actual de vouches: {vouch_counter[user_id]}"
         )
 
-@tree.command(
-    name="checkvouch",
-    description="🔎 Ver cuántos vouches tiene un usuario / Check how many vouches a user has"
-)
-@app_commands.describe(
-    usuario="Usuario al que quieres consultar / User you want to check"
-)
-async def checkvouch(interaction: discord.Interaction, usuario: discord.Member):
-    global vouch_counter
 
-    if interaction.guild_id not in server_configs:
-        await interaction.response.send_message(
-            "❌ Comando no disponible aquí. / Command not available here.",
-            ephemeral=True
-        )
-        return
 
-    total = vouch_counter.get(usuario.id, 0)
-
-    embed = discord.Embed(
-        title="🔎 Consulta de Vouches / Vouch Lookup",
-        description=(
-            f"👤 Usuario / User: {usuario.mention}\n"
-            f"🔢 Total de vouches / Total vouches: **{total}**"
-        ),
-        color=discord.Color.blue(),
-        timestamp=datetime.utcnow()
-    )
-    embed.set_footer(text="Sistema de Ventas | Sales System", icon_url=bot.user.display_avatar.url)
-
-    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 @bot.tree.command(name="ruleta", description="🎲 Sortea un premio entre los miembros del servidor")
