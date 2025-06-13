@@ -665,11 +665,11 @@ async def price(interaction: discord.Interaction):
     description="📝 Deja una calificación para un vendedor / Leave a rating for a seller"
 )
 @app_commands.describe(
-    usuario="Usuario al que haces vouch / User you're vouching for",
-    producto="Producto comprado / Product purchased",
-    estrellas="Calificación (1 a 5 estrellas) / Rating (1 to 5 stars)",
-    imagen="Imagen de prueba (opcional) / Proof image (optional)",
-    anonimo="Si quieres que tu nombre no aparezca / If you want to remain anonymous"
+    usuario="👤 Usuario al que haces vouch / User you're vouching for",
+    producto="📦 Producto comprado / Product purchased",
+    estrellas="⭐ Calificación (1 a 5 estrellas) / Rating (1 to 5 stars)",
+    imagen="📷 Imagen de prueba (opcional) / Proof image (optional)",
+    anonimo="🙈 ¿Quieres que tu nombre no aparezca? / Do you want to remain anonymous?"
 )
 async def vouch(
     interaction: discord.Interaction,
@@ -693,9 +693,11 @@ async def vouch(
         )
         return
 
+    # Registrar el vouch
     user_id = usuario.id
     vouch_counter[user_id] = vouch_counter.get(user_id, 0) + 1
 
+    # Preparar el embed decorativo
     estrellas_str = "⭐" * estrellas + "☆" * (5 - estrellas)
     author_display = "❓ Unknown / Anónimo" if anonimo else interaction.user.mention
 
@@ -704,9 +706,9 @@ async def vouch(
         description=(
             f"**👤 Vouch por / From:** {author_display}\n"
             f"**🙋‍♂️ Para / For:** {usuario.mention}\n"
-            f"**📦 Producto / Product:** {producto}\n"
+            f"**📦 Producto / Product:** `{producto}`\n"
             f"**⭐ Calificación / Rating:** {estrellas_str}\n"
-            f"🔢 **Total de Vouches:** {vouch_counter[user_id]}"
+            f"🔢 **Total de Vouches:** `{vouch_counter[user_id]}`"
         ),
         color=discord.Color.gold(),
         timestamp=datetime.utcnow()
@@ -716,16 +718,17 @@ async def vouch(
     if imagen:
         embed.set_image(url=imagen.url)
 
-    # Confirmación privada al usuario
+    # Enviar confirmación privada al usuario
     await interaction.response.send_message(
         "✅ Vouch enviado correctamente. / Vouch successfully submitted.",
         ephemeral=True
     )
 
-    # Enviar embed al canal donde se usó el comando
-    await interaction.channel.send(embed=embed)
+    # Enviar el embed al canal actual y añadir reacción
+    msg = await interaction.channel.send(embed=embed)
+    await msg.add_reaction("❤️")
 
-    # Log privado
+    # Log privado para control interno
     log_channel = interaction.guild.get_channel(1382521684405518437)
     if log_channel:
         await log_channel.send(
@@ -734,6 +737,7 @@ async def vouch(
             f"Anonimato: {'Sí' if anonimo else 'No'}\n"
             f"🔢 Total actual de vouches: {vouch_counter[user_id]}"
         )
+
 
 
 
