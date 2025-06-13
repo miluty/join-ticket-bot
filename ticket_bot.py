@@ -678,6 +678,82 @@ async def price(interaction: discord.Interaction):
 
 
 @tree.command(
+    name="calcular",
+    description="🧮 Calcula el valor entre Coins, Robux y Fruta",
+    guild=Object(id=server_configs[0])  # ID de tu servidor
+)
+@app_commands.describe(
+    tipo="Tipo de producto a convertir (coins, robux o fruta)",
+    cantidad="Cantidad a calcular"
+)
+async def calcular(
+    interaction: Interaction,
+    tipo: Literal["coins", "robux", "fruta"],
+    cantidad: int
+):
+    if interaction.guild_id not in server_configs:
+        return await interaction.response.send_message("❌ Comando no disponible aquí.", ephemeral=True)
+
+    if cantidad <= 0:
+        return await interaction.response.send_message("❌ La cantidad debe ser mayor a 0.", ephemeral=True)
+
+    # Equivalencias
+    coins_por_usd = 50000
+    robux_por_usd = 140
+    fruta_por_usd = 100000  # 1M fruta = 6 USD → 100K = 1 USD
+
+    if tipo == "coins":
+        usd = cantidad / coins_por_usd
+        robux = usd * robux_por_usd
+        fruta = usd * fruta_por_usd
+        icon = "💰"
+        titulo = "Conversión de Coins"
+
+    elif tipo == "robux":
+        usd = cantidad / robux_por_usd
+        coins = usd * coins_por_usd
+        fruta = usd * fruta_por_usd
+        icon = "🧧"
+        titulo = "Conversión de Robux"
+
+    elif tipo == "fruta":
+        usd = cantidad / fruta_por_usd
+        coins = usd * coins_por_usd
+        robux = usd * robux_por_usd
+        icon = "🍎"
+        titulo = "Conversión de Fruta"
+
+    embed = Embed(
+        title=f"{icon} {titulo}",
+        description="📊 Resultado basado en equivalencias actuales / Based on current exchange rates:",
+        color=0x00ffcc,
+        timestamp=datetime.utcnow()
+    )
+
+    embed.set_footer(text="💱 Sistema de Conversión de Coinverse", icon_url=bot.user.display_avatar.url)
+    embed.add_field(name="🔢 Cantidad original / Original amount", value=f"`{cantidad:,}` {tipo.capitalize()}", inline=False)
+
+    if tipo == "coins":
+        embed.add_field(name="💵 USD", value=f"**${usd:.2f}**", inline=True)
+        embed.add_field(name="🧧 Robux", value=f"**{int(robux):,}**", inline=True)
+        embed.add_field(name="🍎 Fruta", value=f"**{int(fruta):,}**", inline=True)
+    elif tipo == "robux":
+        embed.add_field(name="💵 USD", value=f"**${usd:.2f}**", inline=True)
+        embed.add_field(name="💰 Coins", value=f"**{int(coins):,}**", inline=True)
+        embed.add_field(name="🍎 Fruta", value=f"**{int(fruta):,}**", inline=True)
+    elif tipo == "fruta":
+        embed.add_field(name="💵 USD", value=f"**${usd:.2f}**", inline=True)
+        embed.add_field(name="💰 Coins", value=f"**{int(coins):,}**", inline=True)
+        embed.add_field(name="🧧 Robux", value=f"**{int(robux):,}**", inline=True)
+
+    # Hacer el mensaje público (visible para todos)
+    await interaction.response.send_message(embed=embed)
+
+
+
+
+
+@tree.command(
     name="vouch",
     description="📝 Deja una calificación para un vendedor / Leave a rating for a seller"
 )
