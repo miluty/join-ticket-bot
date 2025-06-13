@@ -660,6 +660,7 @@ async def price(interaction: discord.Interaction):
 
 
 
+
 @tree.command(
     name="vouch",
     description="📝 Deja una calificación para un vendedor / Leave a rating for a seller"
@@ -677,7 +678,7 @@ async def vouch(
     producto: str,
     estrellas: int,
     imagen: Optional[discord.Attachment] = None,
-    anonimo: Optional[bool] = False
+    anonimo: Optional[app_commands.Boolean] = False
 ):
     if interaction.guild_id not in server_configs:
         await interaction.response.send_message(
@@ -697,7 +698,16 @@ async def vouch(
     user_id = usuario.id
     vouch_counter[user_id] = vouch_counter.get(user_id, 0) + 1
 
-    # Preparar el embed decorativo
+    # Guardar vouch detallado si deseas historial
+    vouch_entry = {
+        "from": interaction.user.mention if not anonimo else "❓ Anónimo",
+        "product": producto,
+        "rating": estrellas,
+        "anonimo": anonimo,
+        "imagen_url": imagen.url if imagen else None
+    }
+    vouch_data.setdefault(user_id, []).append(vouch_entry)
+
     estrellas_str = "⭐" * estrellas + "☆" * (5 - estrellas)
     author_display = "❓ Unknown / Anónimo" if anonimo else interaction.user.mention
 
@@ -718,17 +728,17 @@ async def vouch(
     if imagen:
         embed.set_image(url=imagen.url)
 
-    # Enviar confirmación privada al usuario
+    # Confirmación privada al usuario
     await interaction.response.send_message(
         "✅ Vouch enviado correctamente. / Vouch successfully submitted.",
         ephemeral=True
     )
 
-    # Enviar el embed al canal actual y añadir reacción
+    # Enviar el embed en el canal actual
     msg = await interaction.channel.send(embed=embed)
     await msg.add_reaction("❤️")
 
-    # Log privado para control interno
+    # Log privado
     log_channel = interaction.guild.get_channel(1382521684405518437)
     if log_channel:
         await log_channel.send(
@@ -737,6 +747,7 @@ async def vouch(
             f"Anonimato: {'Sí' if anonimo else 'No'}\n"
             f"🔢 Total actual de vouches: {vouch_counter[user_id]}"
         )
+
 
 
 
