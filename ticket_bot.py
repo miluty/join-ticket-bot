@@ -781,7 +781,7 @@ async def vouch(
     producto: str,
     estrellas: int,
     imagen: Optional[discord.Attachment] = None,
-    anonimo: Optional[Literal[True, False]] = False
+    anonimo: Optional[Literal["sí", "no"]] = "no"
 ):
     if interaction.guild_id not in server_configs:
         await interaction.response.send_message(
@@ -801,18 +801,19 @@ async def vouch(
     user_id = usuario.id
     vouch_counter[user_id] = vouch_counter.get(user_id, 0) + 1
 
-    # Guardar vouch detallado si usas historial
+    es_anonimo = anonimo == "sí"
+
     vouch_entry = {
-        "from": interaction.user.mention if not anonimo else "❓ Anónimo",
+        "from": interaction.user.mention if not es_anonimo else "❓ Anónimo",
         "product": producto,
         "rating": estrellas,
-        "anonimo": anonimo,
+        "anonimo": es_anonimo,
         "imagen_url": imagen.url if imagen else None
     }
     vouch_data.setdefault(user_id, []).append(vouch_entry)
 
     estrellas_str = "⭐" * estrellas + "☆" * (5 - estrellas)
-    author_display = "❓ Unknown / Anónimo" if anonimo else interaction.user.mention
+    author_display = "❓ Unknown / Anónimo" if es_anonimo else interaction.user.mention
 
     embed = discord.Embed(
         title="🧾 Nuevo Vouch Recibido / New Vouch Received",
@@ -845,11 +846,9 @@ async def vouch(
         await log_channel.send(
             f"📥 Nuevo vouch registrado por {interaction.user.mention} para {usuario.mention}.\n"
             f"Producto: {producto}, Estrellas: {estrellas} ⭐\n"
-            f"Anonimato: {'Sí' if anonimo else 'No'}\n"
+            f"Anonimato: {anonimo.capitalize()}\n"
             f"🔢 Total actual de vouches: {vouch_counter[user_id]}"
         )
-
-
 
 
 
