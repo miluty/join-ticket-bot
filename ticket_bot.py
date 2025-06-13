@@ -678,7 +678,7 @@ async def vouch(
     producto: str,
     estrellas: int,
     imagen: Optional[discord.Attachment] = None,
-    anonimo: Optional[app_commands.Boolean] = False
+    anonimo: bool = False
 ):
     if interaction.guild_id not in server_configs:
         await interaction.response.send_message(
