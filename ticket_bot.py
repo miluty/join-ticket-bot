@@ -679,73 +679,76 @@ async def price(interaction: discord.Interaction):
 
 @tree.command(
     name="calcular",
-    description="🧮 Calcula el valor entre Coins, Robux y Fruta",
+    description="🧮 Calcula el valor entre Coins, Fruta y USD / Calculate value between Coins, Fruit and USD",
     guild=Object(id=server_configs[0])
 )
 @app_commands.describe(
-    tipo="Tipo de producto a convertir (coins, robux o fruta)",
-    cantidad="Cantidad a calcular"
+    tipo="Elige qué convertir: coins, fruta o usd / Select what to convert",
+    cantidad="Cantidad a calcular / Amount to calculate"
 )
 async def calcular(
     interaction: Interaction,
-    tipo: Literal["coins", "robux", "fruta"],
+    tipo: Literal["coins", "fruta", "usd"],
     cantidad: int
 ):
     if interaction.guild_id not in server_configs:
-        return await interaction.response.send_message("❌ Comando no disponible aquí.", ephemeral=True)
+        return await interaction.response.send_message("❌ Comando no disponible aquí. / Command not available here.", ephemeral=True)
 
     if cantidad <= 0:
-        return await interaction.response.send_message("❌ La cantidad debe ser mayor a 0.", ephemeral=True)
+        return await interaction.response.send_message("❌ La cantidad debe ser mayor a 0. / Amount must be greater than 0.", ephemeral=True)
 
-    # Equivalencias
-    coins_por_usd = 50000
-    robux_por_usd = 140
-    fruta_por_usd = 100000  # 1M fruta = 6 USD → 100k = 1 USD
+    # Equivalencias oficiales
+    coins_per_usd = 50000
+    fruit_per_usd = 100000
+    robux_per_usd = 140
 
-    # Variables iniciales
-    usd = coins = robux = fruta = 0
-    icon = ""
-    titulo = ""
+    # Inicializar resultados
+    usd = robux = coins = fruit = 0
 
-    if tipo == "coins":
-        usd = cantidad / coins_por_usd
-        robux = usd * robux_por_usd
-        fruta = usd * fruta_por_usd
-        coins = cantidad
-        icon = "💰"
-        titulo = "Conversión de Coins"
-
-    elif tipo == "robux":
-        usd = cantidad / robux_por_usd
-        coins = usd * coins_por_usd
-        fruta = usd * fruta_por_usd
-        robux = cantidad
-        icon = "🧧"
-        titulo = "Conversión de Robux"
-
-    elif tipo == "fruta":
-        usd = cantidad / fruta_por_usd
-        coins = usd * coins_por_usd
-        robux = usd * robux_por_usd
-        fruta = cantidad
-        icon = "🍎"
-        titulo = "Conversión de Fruta"
-
-    embed = Embed(
-        title=f"{icon} {titulo}",
-        description="📊 Resultado basado en equivalencias actuales / Based on current exchange rates:",
-        color=0x00ffcc,
+    # Encabezado del embed
+    embed = discord.Embed(
+        color=discord.Color.gold(),
         timestamp=datetime.utcnow()
     )
-
+    embed.set_author(name="🧮 Convertidor Oficial / Official Converter", icon_url="https://i.imgur.com/3i1S0cL.png")
     embed.set_footer(text="💱 Sistema de Conversión de Coinverse", icon_url=bot.user.display_avatar.url)
-    embed.add_field(name="🔢 Cantidad original / Original amount", value=f"`{cantidad:,}` {tipo.capitalize()}", inline=False)
-    embed.add_field(name="💵 USD", value=f"**${usd:.2f}**", inline=True)
-    embed.add_field(name="💰 Coins", value=f"**{int(coins):,}**", inline=True)
-    embed.add_field(name="🧧 Robux", value=f"**{int(robux):,}**", inline=True)
-    embed.add_field(name="🍎 Fruta", value=f"**{int(fruta):,}**", inline=True)
+
+    # Cálculos y decoración
+    if tipo == "coins":
+        usd = cantidad / coins_per_usd
+        robux = usd * robux_per_usd
+        embed.title = "💰 Conversión de Coins / Coins Conversion"
+        embed.description = (
+            f"🔢 Cantidad ingresada / Input amount: `{cantidad:,}` Coins\n\n"
+            f"💵 **USD:** `${usd:.2f}`\n"
+            f"🧧 **Robux:** `{int(robux):,}`"
+        )
+
+    elif tipo == "fruta":
+        usd = cantidad / fruit_per_usd
+        robux = usd * robux_per_usd
+        embed.title = "🍎 Conversión de Fruta / Fruit Conversion"
+        embed.description = (
+            f"🔢 Cantidad ingresada / Input amount: `{cantidad:,}` Fruta\n\n"
+            f"💵 **USD:** `${usd:.2f}`\n"
+            f"🧧 **Robux:** `{int(robux):,}`"
+        )
+
+    elif tipo == "usd":
+        usd = cantidad
+        coins = usd * coins_per_usd
+        fruit = usd * fruit_per_usd
+        robux = usd * robux_per_usd
+        embed.title = "💵 Conversión de USD / USD Conversion"
+        embed.description = (
+            f"🔢 Cantidad ingresada / Input amount: `${usd:.2f}` USD\n\n"
+            f"💰 **Coins:** `{int(coins):,}`\n"
+            f"🍎 **Fruta:** `{int(fruit):,}`\n"
+            f"🧧 **Robux:** `{int(robux):,}`"
+        )
 
     await interaction.response.send_message(embed=embed)
+
 
 
 
