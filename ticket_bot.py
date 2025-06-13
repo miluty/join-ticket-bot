@@ -706,15 +706,15 @@ async def price(interaction: discord.Interaction):
 
 @tree.command(
     name="calcular",
-    description="🧮 Calcula el valor de Coins, Robux o Fruta en otras unidades",
-    guild=discord.Object(id=server_configs[0])  # Ajustado como tu comando giveaway
+    description="🧮 Calcula el valor entre Coins, Robux y Fruta",
+    guild=Object(id=server_configs[0])  # ID de tu servidor
 )
 @app_commands.describe(
-    tipo="Tipo de producto que quieres calcular (Coins, Robux o Fruta)",
+    tipo="Tipo de producto a convertir (coins, robux o fruta)",
     cantidad="Cantidad a calcular"
 )
 async def calcular(
-    interaction: discord.Interaction,
+    interaction: Interaction,
     tipo: Literal["coins", "robux", "fruta"],
     cantidad: int
 ):
@@ -724,34 +724,58 @@ async def calcular(
     if cantidad <= 0:
         return await interaction.response.send_message("❌ La cantidad debe ser mayor a 0.", ephemeral=True)
 
+    # Constantes de conversión
+    coins_por_usd = 50000
+    robux_por_usd = 140
+    fruta_por_usd = 100000
+
+    # Preparar datos
     if tipo == "coins":
-        usd = cantidad / 50000
-        robux = usd * 140
-        respuesta = (
-            f"💰 `{cantidad:,}` Coins equivale a:\n"
-            f"   • **{usd:.2f} USD**\n"
-            f"   • **{robux:.0f} Robux**"
-        )
-    
+        usd = cantidad / coins_por_usd
+        robux = usd * robux_por_usd
+        fruta = usd * fruta_por_usd
+        icon = "💰"
+        titulo = "Conversión de Coins"
+
     elif tipo == "robux":
-        usd = cantidad / 140
-        coins = usd * 50000
-        respuesta = (
-            f"🧧 `{cantidad:,}` Robux equivale a:\n"
-            f"   • **{usd:.2f} USD**\n"
-            f"   • **{coins:,.0f} Coins**"
-        )
-    
+        usd = cantidad / robux_por_usd
+        coins = usd * coins_por_usd
+        fruta = usd * fruta_por_usd
+        icon = "🧧"
+        titulo = "Conversión de Robux"
+
     elif tipo == "fruta":
-        sets = cantidad / 1_000_000
-        usd = sets * 6
-        respuesta = (
-            f"🍎 `{cantidad:,}` de Fruta equivale a:\n"
-            f"   • **{usd:.2f} USD**"
-        )
+        usd = cantidad / fruta_por_usd
+        coins = usd * coins_por_usd
+        robux = usd * robux_por_usd
+        icon = "🍎"
+        titulo = "Conversión de Fruta"
 
-    await interaction.response.send_message(f"🧮 Resultado de conversión:\n{respuesta}", ephemeral=True)
+    # Crear embed decorado
+    embed = Embed(
+        title=f"{icon} {titulo}",
+        description="Resultado de conversión basado en equivalencias actuales:",
+        color=0x00ffcc
+    )
+    embed.set_footer(text="💱 Sistema de Conversión de Coinverse", icon_url=bot.user.display_avatar.url)
+    embed.timestamp = interaction.created_at
 
+    embed.add_field(name="🔢 Cantidad original", value=f"`{cantidad:,}` {tipo.capitalize()}", inline=False)
+    
+    if tipo == "coins":
+        embed.add_field(name="💵 USD", value=f"**${usd:.2f}**", inline=True)
+        embed.add_field(name="🧧 Robux", value=f"**{int(robux):,}**", inline=True)
+        embed.add_field(name="🍎 Fruta", value=f"**{int(fruta):,}**", inline=True)
+    elif tipo == "robux":
+        embed.add_field(name="💵 USD", value=f"**${usd:.2f}**", inline=True)
+        embed.add_field(name="💰 Coins", value=f"**{int(coins):,}**", inline=True)
+        embed.add_field(name="🍎 Fruta", value=f"**{int(fruta):,}**", inline=True)
+    elif tipo == "fruta":
+        embed.add_field(name="💵 USD", value=f"**${usd:.2f}**", inline=True)
+        embed.add_field(name="💰 Coins", value=f"**{int(coins):,}**", inline=True)
+        embed.add_field(name="🧧 Robux", value=f"**{int(robux):,}**", inline=True)
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 
@@ -882,51 +906,55 @@ async def ruleta(interaction: discord.Interaction, premio: str):
     
 @tree.command(
     name="ban",
-    description="🔨 Banea a un usuario del servidor / Ban a user from the server"
+    description="🔨 Banea a un usuario del servidor / Ban a user from the server",
+    guild=Object(id=server_configs[0])  # Solo disponible en tu servidor
 )
 @app_commands.describe(
     usuario="👤 Usuario a banear / User to ban",
     razon="📄 Razón del baneo / Reason for the ban"
 )
 async def ban(
-    interaction: discord.Interaction,
-    usuario: discord.Member,
+    interaction: Interaction,
+    usuario: Member,
     razon: str
 ):
+    if interaction.guild_id not in server_configs:
+        return await interaction.response.send_message("❌ Comando no disponible aquí.", ephemeral=True)
+
     if not interaction.user.guild_permissions.ban_members:
-        await interaction.response.send_message(
+        return await interaction.response.send_message(
             "❌ No tienes permisos para usar este comando. / You don't have permission to use this command.",
             ephemeral=True
         )
-        return
 
     if usuario == interaction.user:
-        await interaction.response.send_message(
+        return await interaction.response.send_message(
             "❌ No puedes banearte a ti mismo. / You can't ban yourself.",
             ephemeral=True
         )
-        return
 
     if usuario.top_role >= interaction.user.top_role and interaction.user != interaction.guild.owner:
-        await interaction.response.send_message(
+        return await interaction.response.send_message(
             "❌ No puedes banear a alguien con un rol igual o superior al tuyo. / You can't ban someone with an equal or higher role.",
             ephemeral=True
         )
-        return
 
-    class ConfirmBanView(discord.ui.View):
+    # Vista de confirmación
+    class ConfirmBanView(ui.View):
         def __init__(self):
             super().__init__(timeout=20)
 
-        @discord.ui.button(label="✅ Confirmar / Confirm", style=discord.ButtonStyle.danger, emoji="🔨")
-        async def confirm(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
+        @ui.button(label="✅ Confirmar / Confirm", style=ButtonStyle.danger, emoji="🔨")
+        async def confirm(self, interaction_btn: Interaction, button: ui.Button):
             if interaction_btn.user != interaction.user:
-                await interaction_btn.response.send_message("❌ Solo el moderador que usó el comando puede confirmar. / Only the moderator who used the command can confirm.", ephemeral=True)
-                return
+                return await interaction_btn.response.send_message(
+                    "❌ Solo el moderador que usó el comando puede confirmar. / Only the moderator who used the command can confirm.",
+                    ephemeral=True
+                )
 
             await interaction.guild.ban(usuario, reason=razon, delete_message_days=1)
 
-            embed = discord.Embed(
+            embed = Embed(
                 title="🔨 Usuario Baneado / User Banned",
                 description=(
                     f"👤 **Usuario / User:** {usuario.mention}\n"
@@ -936,28 +964,37 @@ async def ban(
                 color=discord.Color.red(),
                 timestamp=datetime.utcnow()
             )
-            embed.set_footer(text="Sistema Moderación | Moderation System", icon_url=bot.user.display_avatar.url)
+            embed.set_footer(text="Sistema de Moderación | Moderation System", icon_url=bot.user.display_avatar.url)
 
-            await interaction.response.edit_message(content="✅ Usuario baneado correctamente. / User successfully banned.", embed=embed, view=None)
+            await interaction.response.edit_message(
+                content="✅ Usuario baneado correctamente. / User successfully banned.",
+                embed=embed,
+                view=None
+            )
 
-            # Log privado (opcional)
-            log_channel = interaction.guild.get_channel(1382521684405518437)  # Cambia esto si tienes otro canal de logs
+            log_channel = interaction.guild.get_channel(1382521684405518437)  # Tu canal de logs
             if log_channel:
                 await log_channel.send(embed=embed)
 
-        @discord.ui.button(label="❌ Cancelar / Cancel", style=discord.ButtonStyle.secondary, emoji="❌")
-        async def cancel(self, interaction_btn: discord.Interaction, button: discord.ui.Button):
+        @ui.button(label="❌ Cancelar / Cancel", style=ButtonStyle.secondary, emoji="❌")
+        async def cancel(self, interaction_btn: Interaction, button: ui.Button):
             if interaction_btn.user != interaction.user:
-                await interaction_btn.response.send_message("❌ Solo el moderador que usó el comando puede cancelar. / Only the moderator who used the command can cancel.", ephemeral=True)
-                return
+                return await interaction_btn.response.send_message(
+                    "❌ Solo el moderador que usó el comando puede cancelar. / Only the moderator who used the command can cancel.",
+                    ephemeral=True
+                )
 
-            await interaction.response.edit_message(content="❌ Baneo cancelado. / Ban cancelled.", view=None)
+            await interaction.response.edit_message(
+                content="❌ Baneo cancelado. / Ban cancelled.",
+                view=None
+            )
 
     await interaction.response.send_message(
-        f"⚠️ ¿Estás seguro de banear a {usuario.mention}? / Are you sure you want to ban this user?",
+        f"⚠️ ¿Estás seguro de banear a {usuario.mention}?\nAre you sure you want to ban this user?",
         ephemeral=True,
         view=ConfirmBanView()
     )
+
 
 
 @tree.command(
@@ -1526,6 +1563,97 @@ class RTPModal(discord.ui.Modal, title="Mensaje para usuario random"):
             await interaction.response.send_message(f"❌ No se pudo enviar mensaje privado a {usuario_random.mention}.", ephemeral=True)
         except Exception as e:
             await interaction.response.send_message(f"❌ Error al enviar mensaje: {e}", ephemeral=True)
+
+
+@tree.command(
+    name="checkvouch",
+    description="🔍 Consulta los vouches de un usuario / Check a user's vouches",
+    guild=discord.Object(id=server_configs[0])
+)
+@app_commands.describe(
+    usuario="👤 Usuario del cual deseas ver los vouches / User to check"
+)
+async def checkvouch(interaction: discord.Interaction, usuario: discord.Member):
+    if interaction.guild_id not in server_configs:
+        return await interaction.response.send_message("❌ Comando no disponible aquí.", ephemeral=True)
+
+    total = vouch_counter.get(usuario.id, 0)
+    embed = discord.Embed(
+        title="📊 Historial de Vouches / Vouch History",
+        description=(
+            f"👤 **Usuario / User:** {usuario.mention}\n"
+            f"🔢 **Total de Vouches:** `{total}`"
+        ),
+        color=discord.Color.blurple(),
+        timestamp=datetime.utcnow()
+    )
+    embed.set_footer(text="Sistema de Reputación | Reputation System", icon_url=bot.user.display_avatar.url)
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+
+@tree.command(
+    name="addvouch",
+    description="➕ Añade manualmente un vouch a un usuario / Manually add a vouch to a user",
+    guild=discord.Object(id=server_configs[0])
+)
+@commands.has_permissions(administrator=True)
+@app_commands.describe(
+    usuario="👤 Usuario al que deseas añadir un vouch / User to add a vouch to",
+    producto="📦 Producto asociado (opcional) / Related product (optional)",
+    estrellas="⭐ Calificación (1 a 5) / Rating (1 to 5)",
+    anonimo="🙈 ¿Vouch anónimo? / Anonymous vouch?"
+)
+async def addvouch(
+    interaction: discord.Interaction,
+    usuario: discord.Member,
+    producto: Optional[str] = "Desconocido",
+    estrellas: int = 5,
+    anonimo: Literal["sí", "no"] = "no"
+):
+    if interaction.guild_id not in server_configs:
+        return await interaction.response.send_message("❌ Comando no disponible aquí.", ephemeral=True)
+
+    if estrellas < 1 or estrellas > 5:
+        return await interaction.response.send_message("❌ Calificación debe estar entre 1 y 5.", ephemeral=True)
+
+    user_id = usuario.id
+    vouch_counter[user_id] = vouch_counter.get(user_id, 0) + 1
+
+    vouch_data.setdefault(user_id, []).append({
+        "from": "👮 Añadido por admin",
+        "product": producto,
+        "rating": estrellas,
+        "anonimo": anonimo == "sí",
+        "imagen_url": None
+    })
+
+    estrellas_str = "⭐" * estrellas + "☆" * (5 - estrellas)
+    embed = discord.Embed(
+        title="📌 Vouch Añadido Manualmente / Vouch Manually Added",
+        description=(
+            f"👤 **Usuario:** {usuario.mention}\n"
+            f"📦 **Producto:** `{producto}`\n"
+            f"⭐ **Calificación:** {estrellas_str}\n"
+            f"🙈 **Anónimo:** {'Sí' if anonimo == 'sí' else 'No'}\n"
+            f"🔢 **Total actual:** `{vouch_counter[user_id]}`"
+        ),
+        color=discord.Color.green(),
+        timestamp=datetime.utcnow()
+    )
+    embed.set_footer(text="Sistema de Vouches | Vouch System", icon_url=bot.user.display_avatar.url)
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # Log privado
+    log_channel = interaction.guild.get_channel(1382521684405518437)
+    if log_channel:
+        await log_channel.send(f"✅ Vouch manual añadido para {usuario.mention} por {interaction.user.mention}.", embed=embed)
+
+
+
+
 
 @tree.command(
     name="rtp",
