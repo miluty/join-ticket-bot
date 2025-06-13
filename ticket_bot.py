@@ -9,7 +9,8 @@ from discord.ui import View, Button
 from discord import app_commands, ui, Interaction, Embed, ButtonStyle, Object
 from discord.ext import commands
 from datetime import datetime, timedelta
-from typing import Optional, Literal
+from typing import Optional
+from typing import Literal
 
 
 intents = discord.Intents.all()
@@ -702,6 +703,7 @@ async def price(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed, view=PriceView())
 
+
 @tree.command(
     name="calculate",
     description="🧮 Calcula el precio de Coins o Fruta / Calculate price for Coins or Fruit"
@@ -722,51 +724,44 @@ async def calculate(
         )
         return
 
-    if cantidad <= 0:
-        await interaction.response.send_message(
-            "❌ La cantidad debe ser mayor a 0. / Amount must be greater than 0.",
-            ephemeral=True
-        )
-        return
-
-    # Cálculo para Coins
+    # Conversión
     if tipo == "coins":
-        bloques = cantidad / 50_000
-        precio_usd = round(bloques * 1, 2)
-        precio_robux = round(bloques * 140)
+        robux = (cantidad / 50_000) * 140
+        usd = (cantidad / 50_000) * 1
+        emoji = "🪙"
+        unidad = "Coins"
+    else:  # fruta
+        robux = 0
+        usd = (cantidad / 1_000_000) * 6
+        emoji = "🍍"
+        unidad = "Fruta / Fruit"
 
-        descripcion = (
-            f"🪙 Has solicitado `{cantidad:,}` Coins\n\n"
-            f"💵 **Total en USD:** `${precio_usd}`\n"
-            f"💸 **Total en Robux:** `{precio_robux}` Robux\n\n"
-            "📌 Equivalencia: `50,000 Coins` = `140 Robux` = `$1.00`"
-        )
-
-    # Cálculo para Fruta
-    elif tipo == "fruit":
-        bloques = cantidad / 1_000_000
-        precio_usd = round(bloques * 6, 2)
-
-        descripcion = (
-            f"🍍 Has solicitado `{cantidad:,}` Frutas\n\n"
-            f"💵 **Total en USD:** `${precio_usd}`\n\n"
-            "📌 Equivalencia: `1,000,000 Frutas` = `$6.00`"
-        )
-
-    # Embed decorado
     embed = discord.Embed(
-        title="🧮 CALCULADORA DE PRECIO / PRICE CALCULATOR",
-        description=descripcion,
-        color=discord.Color.green(),
+        title="🧮 Calculadora de Precio / Price Calculator",
+        description=(
+            f"{emoji} **Cantidad solicitada:** `{cantidad:,}` {unidad}\n\n"
+            f"💸 **Total estimado:**\n"
+            f"• 💵 USD: `${usd:.2f}`\n"
+            f"• 💎 Robux: `{int(robux)}`" if robux else ""
+        ),
+        color=discord.Color.blurple(),
         timestamp=datetime.utcnow()
     )
-    embed.set_footer(
-        text="Sistema de Ventas | Sales System",
-        icon_url=bot.user.display_avatar.url
-    )
-    embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")
+    embed.set_author(name="💰 Calculadora de Compras / Purchase Calculator", icon_url=bot.user.display_avatar.url)
+    embed.set_footer(text="✨ Precios sujetos a cambio. / Prices may vary.")
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    class PedidoView(View):
+        def __init__(self):
+            super().__init__(timeout=None)
+            self.add_item(Button(
+                label="📨 Hacer Pedido / Place Order",
+                url=f"https://discord.com/channels/{interaction.guild_id}/1373527079382941817",  # ⚠️ Tu canal real de pedidos
+                style=ButtonStyle.link
+            ))
+
+    await interaction.response.send_message(embed=embed, view=PedidoView())
+
+
 
 
 @tree.command(
