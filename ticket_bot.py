@@ -5,6 +5,7 @@ import datetime
 import asyncio
 import random
 import re
+from discord import Member
 from discord.ui import View, Button
 from discord import app_commands, ui, Interaction, Embed, ButtonStyle, Object
 from discord.ext import commands
