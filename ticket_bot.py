@@ -704,21 +704,15 @@ async def price(interaction: discord.Interaction):
 
 @tree.command(
     name="calculate",
-    description="🧮 Calcula el precio según cantidad y producto / Calculate price by amount and product"
+    description="🧮 Calcula el precio de Coins o Fruta / Calculate price for Coins or Fruit"
 )
 @app_commands.describe(
-    tipo="📦 Tipo de producto / Product type",
-    cantidad="🔢 Cantidad (Coins o Minutos de fruta) / Quantity (Coins or Fruit Minutes)"
-)
-@app_commands.choices(
-    tipo=[
-        app_commands.Choice(name="🪙 Coins (50k = 140 Robux / $1)", value="coins"),
-        app_commands.Choice(name="🍍 Fruta (1 min = $6)", value="fruit")
-    ]
+    tipo="🪙 Coins (50k = 140 Robux / $1) o 🍍 Fruta (1M = $6)",
+    cantidad="🔢 Cantidad de Coins o Fruta (en números)"
 )
 async def calculate(
     interaction: discord.Interaction,
-    tipo: app_commands.Choice[str],
+    tipo: Literal["coins", "fruit"],
     cantidad: int
 ):
     if interaction.guild_id not in server_configs:
@@ -730,13 +724,13 @@ async def calculate(
 
     if cantidad <= 0:
         await interaction.response.send_message(
-            "❌ La cantidad debe ser mayor que 0. / Amount must be greater than 0.",
+            "❌ La cantidad debe ser mayor a 0. / Amount must be greater than 0.",
             ephemeral=True
         )
         return
 
-    if tipo.value == "coins":
-        # Cada 50k = 1 USD = 140 Robux
+    # Cálculo para Coins
+    if tipo == "coins":
         bloques = cantidad / 50_000
         precio_usd = round(bloques * 1, 2)
         precio_robux = round(bloques * 140)
@@ -748,16 +742,18 @@ async def calculate(
             "📌 Equivalencia: `50,000 Coins` = `140 Robux` = `$1.00`"
         )
 
-    elif tipo.value == "fruit":
-        # Cada 1 minuto = $6.00
-        precio_usd = round(cantidad * 6, 2)
+    # Cálculo para Fruta
+    elif tipo == "fruit":
+        bloques = cantidad / 1_000_000
+        precio_usd = round(bloques * 6, 2)
 
         descripcion = (
-            f"🍍 Has solicitado `{cantidad}` minutos de fruta\n\n"
+            f"🍍 Has solicitado `{cantidad:,}` Frutas\n\n"
             f"💵 **Total en USD:** `${precio_usd}`\n\n"
-            "📌 Equivalencia: `1 minuto` = `$6.00`"
+            "📌 Equivalencia: `1,000,000 Frutas` = `$6.00`"
         )
 
+    # Embed decorado
     embed = discord.Embed(
         title="🧮 CALCULADORA DE PRECIO / PRICE CALCULATOR",
         description=descripcion,
@@ -768,9 +764,9 @@ async def calculate(
         text="Sistema de Ventas | Sales System",
         icon_url=bot.user.display_avatar.url
     )
+    embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 
 @tree.command(
