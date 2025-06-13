@@ -680,7 +680,7 @@ async def price(interaction: discord.Interaction):
 @tree.command(
     name="calcular",
     description="🧮 Calcula el valor entre Coins, Robux y Fruta",
-    guild=Object(id=server_configs[0])  # ID de tu servidor
+    guild=Object(id=server_configs[0])
 )
 @app_commands.describe(
     tipo="Tipo de producto a convertir (coins, robux o fruta)",
@@ -700,12 +700,18 @@ async def calcular(
     # Equivalencias
     coins_por_usd = 50000
     robux_por_usd = 140
-    fruta_por_usd = 100000  # 1M fruta = 6 USD → 100K = 1 USD
+    fruta_por_usd = 100000  # 1M fruta = 6 USD → 100k = 1 USD
+
+    # Variables iniciales
+    usd = coins = robux = fruta = 0
+    icon = ""
+    titulo = ""
 
     if tipo == "coins":
         usd = cantidad / coins_por_usd
         robux = usd * robux_por_usd
         fruta = usd * fruta_por_usd
+        coins = cantidad
         icon = "💰"
         titulo = "Conversión de Coins"
 
@@ -713,6 +719,7 @@ async def calcular(
         usd = cantidad / robux_por_usd
         coins = usd * coins_por_usd
         fruta = usd * fruta_por_usd
+        robux = cantidad
         icon = "🧧"
         titulo = "Conversión de Robux"
 
@@ -720,6 +727,7 @@ async def calcular(
         usd = cantidad / fruta_por_usd
         coins = usd * coins_por_usd
         robux = usd * robux_por_usd
+        fruta = cantidad
         icon = "🍎"
         titulo = "Conversión de Fruta"
 
@@ -732,21 +740,11 @@ async def calcular(
 
     embed.set_footer(text="💱 Sistema de Conversión de Coinverse", icon_url=bot.user.display_avatar.url)
     embed.add_field(name="🔢 Cantidad original / Original amount", value=f"`{cantidad:,}` {tipo.capitalize()}", inline=False)
+    embed.add_field(name="💵 USD", value=f"**${usd:.2f}**", inline=True)
+    embed.add_field(name="💰 Coins", value=f"**{int(coins):,}**", inline=True)
+    embed.add_field(name="🧧 Robux", value=f"**{int(robux):,}**", inline=True)
+    embed.add_field(name="🍎 Fruta", value=f"**{int(fruta):,}**", inline=True)
 
-    if tipo == "coins":
-        embed.add_field(name="💵 USD", value=f"**${usd:.2f}**", inline=True)
-        embed.add_field(name="🧧 Robux", value=f"**{int(robux):,}**", inline=True)
-        embed.add_field(name="🍎 Fruta", value=f"**{int(fruta):,}**", inline=True)
-    elif tipo == "robux":
-        embed.add_field(name="💵 USD", value=f"**${usd:.2f}**", inline=True)
-        embed.add_field(name="💰 Coins", value=f"**{int(coins):,}**", inline=True)
-        embed.add_field(name="🍎 Fruta", value=f"**{int(fruta):,}**", inline=True)
-    elif tipo == "fruta":
-        embed.add_field(name="💵 USD", value=f"**${usd:.2f}**", inline=True)
-        embed.add_field(name="💰 Coins", value=f"**{int(coins):,}**", inline=True)
-        embed.add_field(name="🧧 Robux", value=f"**{int(robux):,}**", inline=True)
-
-    # Hacer el mensaje público (visible para todos)
     await interaction.response.send_message(embed=embed)
 
 
