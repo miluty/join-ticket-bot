@@ -600,17 +600,16 @@ async def price(interaction: discord.Interaction):
         return
 
     embed = discord.Embed(
-        title="💸 COINS & SERVICIOS | PRICE LIST",
+        title="💸 COINS | PRICE LIST",
         description=(
-            "✨ **Bienvenido a nuestra tienda oficial**\n"
-            "🔥 Compra segura, rápida y personalizada\n"
+            "✨ **Bienvenido a nuestra tienda oficial** / Welcome to our official store\n"
+            "🔥 Compra segura y rápida / Fast and safe purchase\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
-            "🔹 **Equivalencia Base:**\n"
-            "> `50,000 Coins` → `140 Robux` / `$1.00 USD`\n\n"
-            "📦 *Realiza tu pedido hoy mismo y potencia tu juego.*\n"
-            "📦 *Order now and level up your experience!*"
+            "🔹 **Equivalencia Base / Base Rate:**\n"
+            "> `50,000 Coins` → `140 Robux` / `$1.00 USD`\n"
+            "> `100,000 Fruta` → `1.00 USD`"
         ),
-        color=discord.Color.from_rgb(255, 191, 0),  # Amarillo dorado
+        color=discord.Color.from_rgb(255, 191, 0),
         timestamp=datetime.utcnow()
     )
 
@@ -620,7 +619,6 @@ async def price(interaction: discord.Interaction):
     )
     embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")
 
-    # Sección de coins con precios dinámicos
     prices = [
         (50_000, 140, 1),
         (100_000, 280, 2),
@@ -634,7 +632,7 @@ async def price(interaction: discord.Interaction):
         (500_000, 1400, 10),
     ]
 
-    embed.add_field(name="💰 **COINS DISPONIBLES**", value="━━━━━━━━━━━━━━", inline=False)
+    embed.add_field(name="💰 **COINS DISPONIBLES** / AVAILABLE COINS", value="━━━━━━━━━━━━━━", inline=False)
 
     for coins, robux, usd in prices:
         embed.add_field(
@@ -643,44 +641,16 @@ async def price(interaction: discord.Interaction):
             inline=True
         )
 
-    # Sección de servicios premium
-    embed.add_field(name="⠀", value="**🎁 SERVICIOS PREMIUM / PREMIUM SERVICES**", inline=False)
-
     embed.add_field(
-        name="🧠 Max Mojo Account",
-        value=(
-            "💵 **$5.00 USD**\n"
-            "✅ Cuenta con todo desbloqueado\n"
-            "📩 Abre un ticket para obtenerla"
-        ),
-        inline=True
+        name="🍍 **GRANJA DE FRUTA / FRUIT FARM**",
+        value="🌈  auto-farm\n📩 *Abre un ticket para solicitarlo / Open a ticket to request it*",
+        inline=False
     )
 
     embed.add_field(
-        name="🍍 Fruit Farm / Granja de Fruta",
-        value=(
-            "🌈 Frutas raras, auto farm + velocidad\n"
-            "💬 *Consulta disponibilidad por ticket*"
-        ),
-        inline=True
-    )
-
-    embed.add_field(
-        name="🔐 Cuentas Personalizadas",
-        value=(
-            "🛡️ Protección + nombre a elección\n"
-            "💰 Precio variable según stock"
-        ),
-        inline=True
-    )
-
-    embed.add_field(
-        name="📦 Packs de Inicio",
-        value=(
-            "🔥 Combos de Coins + Cuenta + Frutas\n"
-            "💎 Ideales para comenzar fuerte"
-        ),
-        inline=True
+        name="🧠 **MAX ACCOUNT + FARM MOJOS**",
+        value="✅ Cuenta con todos mojos\n💵 **$5.00 USD**\n📩 *Abre un ticket para obtenerla / Open a ticket to get it*",
+        inline=False
     )
 
     embed.set_footer(
@@ -688,96 +658,22 @@ async def price(interaction: discord.Interaction):
         icon_url=bot.user.display_avatar.url
     )
 
-    # Botón para redirigir al canal de pedidos
     class PriceView(discord.ui.View):
         def __init__(self):
             super().__init__(timeout=None)
             self.add_item(discord.ui.Button(
                 label="📨 Hacer Pedido / Place Order",
-                url=f"https://discord.com/channels/{interaction.guild_id}/1373527079382941817",  # <-- tu canal
+                url=f"https://discord.com/channels/{interaction.guild_id}/1373527079382941817",
                 style=discord.ButtonStyle.link
             ))
             self.add_item(discord.ui.Button(
                 label="🔍 Soporte / Support",
-                url="https://discord.com/channels/tu-servidor/tu-canal-soporte",  # opcional
+                url="https://discord.com/channels/tu-servidor/tu-canal-soporte",
                 style=discord.ButtonStyle.link
             ))
 
     await interaction.response.send_message(embed=embed, view=PriceView())
 
-
-@tree.command(
-    name="calcular",
-    description="🧮 Calcula el valor entre Coins, Robux y Fruta",
-    guild=Object(id=server_configs[0])  # ID de tu servidor
-)
-@app_commands.describe(
-    tipo="Tipo de producto a convertir (coins, robux o fruta)",
-    cantidad="Cantidad a calcular"
-)
-async def calcular(
-    interaction: Interaction,
-    tipo: Literal["coins", "robux", "fruta"],
-    cantidad: int
-):
-    if interaction.guild_id not in server_configs:
-        return await interaction.response.send_message("❌ Comando no disponible aquí.", ephemeral=True)
-
-    if cantidad <= 0:
-        return await interaction.response.send_message("❌ La cantidad debe ser mayor a 0.", ephemeral=True)
-
-    # Constantes de conversión
-    coins_por_usd = 50000
-    robux_por_usd = 140
-    fruta_por_usd = 100000
-
-    # Preparar datos
-    if tipo == "coins":
-        usd = cantidad / coins_por_usd
-        robux = usd * robux_por_usd
-        fruta = usd * fruta_por_usd
-        icon = "💰"
-        titulo = "Conversión de Coins"
-
-    elif tipo == "robux":
-        usd = cantidad / robux_por_usd
-        coins = usd * coins_por_usd
-        fruta = usd * fruta_por_usd
-        icon = "🧧"
-        titulo = "Conversión de Robux"
-
-    elif tipo == "fruta":
-        usd = cantidad / fruta_por_usd
-        coins = usd * coins_por_usd
-        robux = usd * robux_por_usd
-        icon = "🍎"
-        titulo = "Conversión de Fruta"
-
-    # Crear embed decorado
-    embed = Embed(
-        title=f"{icon} {titulo}",
-        description="Resultado de conversión basado en equivalencias actuales:",
-        color=0x00ffcc
-    )
-    embed.set_footer(text="💱 Sistema de Conversión de Coinverse", icon_url=bot.user.display_avatar.url)
-    embed.timestamp = interaction.created_at
-
-    embed.add_field(name="🔢 Cantidad original", value=f"`{cantidad:,}` {tipo.capitalize()}", inline=False)
-    
-    if tipo == "coins":
-        embed.add_field(name="💵 USD", value=f"**${usd:.2f}**", inline=True)
-        embed.add_field(name="🧧 Robux", value=f"**{int(robux):,}**", inline=True)
-        embed.add_field(name="🍎 Fruta", value=f"**{int(fruta):,}**", inline=True)
-    elif tipo == "robux":
-        embed.add_field(name="💵 USD", value=f"**${usd:.2f}**", inline=True)
-        embed.add_field(name="💰 Coins", value=f"**{int(coins):,}**", inline=True)
-        embed.add_field(name="🍎 Fruta", value=f"**{int(fruta):,}**", inline=True)
-    elif tipo == "fruta":
-        embed.add_field(name="💵 USD", value=f"**${usd:.2f}**", inline=True)
-        embed.add_field(name="💰 Coins", value=f"**{int(coins):,}**", inline=True)
-        embed.add_field(name="🧧 Robux", value=f"**{int(robux):,}**", inline=True)
-
-    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 
