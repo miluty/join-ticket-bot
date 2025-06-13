@@ -705,61 +705,52 @@ async def price(interaction: discord.Interaction):
 
 
 @tree.command(
-    name="calculate",
-    description="🧮 Calcula el precio de Coins o Fruta / Calculate price for Coins or Fruit"
+    name="calcular",
+    description="🧮 Calcula el valor de Coins, Robux o Fruta en otras unidades",
+    guild=discord.Object(id=server_configs[0])  # Ajustado como tu comando giveaway
 )
 @app_commands.describe(
-    tipo="🪙 Coins (50k = 140 Robux / $1) o 🍍 Fruta (1M = $6)",
-    cantidad="🔢 Cantidad de Coins o Fruta (en números)"
+    tipo="Tipo de producto que quieres calcular (Coins, Robux o Fruta)",
+    cantidad="Cantidad a calcular"
 )
-async def calculate(
+async def calcular(
     interaction: discord.Interaction,
-    tipo: Literal["coins", "fruit"],
+    tipo: Literal["coins", "robux", "fruta"],
     cantidad: int
 ):
     if interaction.guild_id not in server_configs:
-        await interaction.response.send_message(
-            "❌ Comando no disponible aquí. / Command not available here.",
-            ephemeral=True
-        )
-        return
+        return await interaction.response.send_message("❌ Comando no disponible aquí.", ephemeral=True)
 
-    # Conversión
+    if cantidad <= 0:
+        return await interaction.response.send_message("❌ La cantidad debe ser mayor a 0.", ephemeral=True)
+
     if tipo == "coins":
-        robux = (cantidad / 50_000) * 140
-        usd = (cantidad / 50_000) * 1
-        emoji = "🪙"
-        unidad = "Coins"
-    else:  # fruta
-        robux = 0
-        usd = (cantidad / 1_000_000) * 6
-        emoji = "🍍"
-        unidad = "Fruta / Fruit"
+        usd = cantidad / 50000
+        robux = usd * 140
+        respuesta = (
+            f"💰 `{cantidad:,}` Coins equivale a:\n"
+            f"   • **{usd:.2f} USD**\n"
+            f"   • **{robux:.0f} Robux**"
+        )
+    
+    elif tipo == "robux":
+        usd = cantidad / 140
+        coins = usd * 50000
+        respuesta = (
+            f"🧧 `{cantidad:,}` Robux equivale a:\n"
+            f"   • **{usd:.2f} USD**\n"
+            f"   • **{coins:,.0f} Coins**"
+        )
+    
+    elif tipo == "fruta":
+        sets = cantidad / 1_000_000
+        usd = sets * 6
+        respuesta = (
+            f"🍎 `{cantidad:,}` de Fruta equivale a:\n"
+            f"   • **{usd:.2f} USD**"
+        )
 
-    embed = discord.Embed(
-        title="🧮 Calculadora de Precio / Price Calculator",
-        description=(
-            f"{emoji} **Cantidad solicitada:** `{cantidad:,}` {unidad}\n\n"
-            f"💸 **Total estimado:**\n"
-            f"• 💵 USD: `${usd:.2f}`\n"
-            f"• 💎 Robux: `{int(robux)}`" if robux else ""
-        ),
-        color=discord.Color.blurple(),
-        timestamp=datetime.utcnow()
-    )
-    embed.set_author(name="💰 Calculadora de Compras / Purchase Calculator", icon_url=bot.user.display_avatar.url)
-    embed.set_footer(text="✨ Precios sujetos a cambio. / Prices may vary.")
-
-    class PedidoView(View):
-        def __init__(self):
-            super().__init__(timeout=None)
-            self.add_item(Button(
-                label="📨 Hacer Pedido / Place Order",
-                url=f"https://discord.com/channels/{interaction.guild_id}/1373527079382941817",  # ⚠️ Tu canal real de pedidos
-                style=ButtonStyle.link
-            ))
-
-    await interaction.response.send_message(embed=embed, view=PedidoView())
+    await interaction.response.send_message(f"🧮 Resultado de conversión:\n{respuesta}", ephemeral=True)
 
 
 
