@@ -620,16 +620,16 @@ async def price(interaction: discord.Interaction):
     embed.set_thumbnail(url="https://i.imgur.com/8f0Q4Yk.png")
 
     prices = [
-        (50_000, 140, 1),
-        (100_000, 280, 2),
-        (150_000, 420, 3),
-        (200_000, 560, 4),
-        (250_000, 700, 5),
-        (300_000, 840, 6),
-        (350_000, 980, 7),
-        (400_000, 1120, 8),
-        (450_000, 1260, 9),
-        (500_000, 1400, 10),
+        (50_000, 160, 1),
+        (100_000, 320, 2),
+        (150_000, 480, 3),
+        (200_000, 640, 4),
+        (250_000, 800, 5),
+        (300_000, 960, 6),
+        (350_000, 1120, 7),
+        (400_000, 1280, 8),
+        (450_000, 1440, 9),
+        (500_000, 1600, 10),
     ]
 
     embed.add_field(name="💰 **COINS DISPONIBLES** / AVAILABLE COINS", value="━━━━━━━━━━━━━━", inline=False)
@@ -700,7 +700,7 @@ async def calcular(
     # Equivalencias oficiales
     coins_per_usd = 50000
     fruit_per_usd = 100000
-    robux_per_usd = 140
+    robux_per_usd = 160
 
     # Inicializar resultados
     usd = robux = coins = fruit = 0
