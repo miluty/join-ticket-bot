@@ -143,7 +143,7 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
         usd = robux = 0
         if self.producto == "coins":
             usd = round(cantidad / 50000, 2)
-            robux = round(usd * 180)
+            robux = round(usd * 160)
         elif self.producto == "fruit":
             usd = round((cantidad / 100000) * 2, 2)
             robux = round(usd * 150)
