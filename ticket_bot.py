@@ -291,19 +291,21 @@ class CloseTicketButton(discord.ui.Button):
             await interaction.response.send_message("❌ Solo administradores pueden cerrar tickets.", ephemeral=True)
             return
 
-        # Recuperar el ID del autor desde el topic (importante para reabrir luego)
+        # Obtener el ID del cliente desde el topic del canal
         try:
             user_id = int(interaction.channel.topic)
-        except (TypeError, ValueError):
-            user_id = None
+            member = interaction.guild.get_member(user_id)
+        except Exception:
+            member = None
 
-        # Mover el canal a la categoría de cerrados
+        # Mover canal a categoría de cerrados
         await interaction.channel.edit(category=discord.Object(id=CATEGORIA_CERRADOS_ID))
 
-        # Quitar permisos al autor del ticket (si existe)
-        if user_id:
-            await interaction.channel.set_permissions(discord.Object(id=user_id), overwrite=None)
+        # Quitar permisos al autor del ticket
+        if member:
+            await interaction.channel.set_permissions(member, overwrite=None)
 
+        # Enviar mensaje al canal
         await interaction.channel.send(
             embed=discord.Embed(
                 title="🎫 Ticket Cerrado / Ticket Closed",
@@ -317,6 +319,21 @@ class CloseTicketButton(discord.ui.Button):
             view=ClaimView(interaction.channel, self.data_manager, is_closed=True)
         )
 
+        # Intentar mandar DM al cliente
+        if member:
+            try:
+                await member.send(
+                    embed=discord.Embed(
+                        title="📪 Ticket cerrado",
+                        description=f"Tu ticket en el servidor **{interaction.guild.name}** ha sido cerrado por un administrador.\n\nGracias por usar nuestro sistema.",
+                        color=discord.Color.orange()
+                    )
+                )
+            except discord.Forbidden:
+                print(f"⚠️ No se pudo enviar DM a {member} (probablemente tiene DMs desactivados).")
+
+        await interaction.response.send_message("✅ Ticket cerrado correctamente.", ephemeral=True)
+
 class ReopenButton(discord.ui.Button):
     def __init__(self):
         super().__init__(label="♻️ Reabrir Ticket", style=discord.ButtonStyle.blurple)
@@ -326,19 +343,58 @@ class ReopenButton(discord.ui.Button):
             await interaction.response.send_message("❌ Solo administradores pueden reabrir tickets.", ephemeral=True)
             return
 
-        # Recupera el ID del usuario original desde el topic del canal
-        user_id = int(interaction.channel.topic)
-        await interaction.channel.edit(category=discord.Object(id=CATEGORIA_TICKETS_ID))
-        await interaction.channel.set_permissions(discord.Object(id=user_id), view_channel=True, send_messages=True)
+        # Obtener ID del cliente desde el topic del canal
+        try:
+            user_id = int(interaction.channel.topic)
+            member = interaction.guild.get_member(user_id)
+        except (ValueError, TypeError):
+            await interaction.response.send_message("❌ No se pudo obtener el ID del usuario del topic.", ephemeral=True)
+            return
 
+        # Restaurar categoría de tickets activos
+        await interaction.channel.edit(category=discord.Object(id=CATEGORIA_TICKETS_ID))
+
+        # Configurar permisos
+        overwrites = {
+            interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            discord.utils.get(interaction.guild.roles, id=ROL_ADMIN_ID): discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+            interaction.guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+        }
+
+        if member:
+            overwrites[member] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
+
+        await interaction.channel.edit(overwrites=overwrites)
+
+        # Enviar mensaje al canal
         await interaction.channel.send(
             embed=discord.Embed(
                 title="♻️ Ticket Reabierto / Ticket Reopened",
-                description="Este ticket ha sido reabierto por un administrador.",
+                description=(
+                    "Este ticket ha sido reabierto por un administrador.\n\n"
+                    "Tanto el cliente como el staff pueden continuar la conversación.\n\n"
+                    "*This ticket has been reopened by an admin.*"
+                ),
                 color=discord.Color.green()
             ),
             view=ClaimView(interaction.channel, interaction.client.data_manager, is_closed=False)
         )
+
+        # Intentar enviar DM al cliente
+        if member:
+            try:
+                await member.send(
+                    embed=discord.Embed(
+                        title="♻️ Tu ticket fue reabierto",
+                        description=f"Tu ticket en el servidor **{interaction.guild.name}** ha sido reabierto por un administrador. Puedes volver a responder.",
+                        color=discord.Color.green()
+                    )
+                )
+            except discord.Forbidden:
+                print(f"⚠️ No se pudo enviar DM al usuario {member.name} (probablemente tenga DMs desactivados).")
+
+        await interaction.response.send_message("✅ Ticket reabierto correctamente.", ephemeral=True)
+
 
 @tree.command(
     name="panel",
