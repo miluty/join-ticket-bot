@@ -136,10 +136,10 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
             )
             return
 
-        # Reduce stock
+        # Reducir el stock
         self.data_manager.reduce_stock(self.producto, cantidad)
 
-        # Calcular precio
+        # Calcular precios
         usd = robux = 0
         if self.producto == "coins":
             usd = round(cantidad / 50000, 2)
@@ -147,17 +147,25 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
         elif self.producto == "fruit":
             usd = round((cantidad / 100000) * 2, 2)
             robux = round(usd * 150)
-        elif self.producto == "mojo" or self.producto == "mojos":
+        elif self.producto in ["mojo", "mojos"]:
             usd = round(cantidad * 0.5, 2)
             robux = round(cantidad * 30)
 
-        # Crear canal anónimo con acceso solo para admins
+        # Crear canal del ticket con permisos adecuados
         safe_name = f"{self.metodo_pago.lower()}-{self.producto}"
         category = discord.utils.get(interaction.guild.categories, id=TICKET_CATEGORY_ID)
 
         overwrites = {
             interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            discord.utils.get(interaction.guild.roles, id=ROL_ADMIN_ID): discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+            interaction.user: discord.PermissionOverwrite(
+                view_channel=True, send_messages=True,
+                attach_files=True, embed_links=True,
+                read_message_history=True
+            ),
+            discord.utils.get(interaction.guild.roles, id=ROL_ADMIN_ID): discord.PermissionOverwrite(
+                view_channel=True, send_messages=True,
+                read_message_history=True
+            ),
             interaction.guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
         }
 
@@ -168,7 +176,7 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
             topic=str(interaction.user.id)
         )
 
-        # Guardar datos del ticket
+        # Guardar información del ticket
         self.data_manager.set_ticket(ticket_channel.id, {
             "cliente_id": str(interaction.user.id),
             "producto": self.producto,
@@ -178,7 +186,7 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
             "precio_robux": str(robux)
         })
 
-        # Embed decorativo del ticket
+        # Embed del ticket
         embed = discord.Embed(
             title="🎫 Nuevo Ticket de Compra",
             description=(
@@ -196,9 +204,10 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
 
         await ticket_channel.send(embed=embed, view=ClaimView(ticket_channel, self.data_manager))
         await interaction.response.send_message(
-            f"✅ Ticket creado en {ticket_channel.mention} (solo admins pueden verlo).",
+            f"✅ Ticket creado en {ticket_channel.mention}.",
             ephemeral=True
         )
+
 
 
 
@@ -282,9 +291,19 @@ class CloseTicketButton(discord.ui.Button):
             await interaction.response.send_message("❌ Solo administradores pueden cerrar tickets.", ephemeral=True)
             return
 
-        # Mueve a categoría cerrados y restringe acceso
+        # Recuperar el ID del autor desde el topic (importante para reabrir luego)
+        try:
+            user_id = int(interaction.channel.topic)
+        except (TypeError, ValueError):
+            user_id = None
+
+        # Mover el canal a la categoría de cerrados
         await interaction.channel.edit(category=discord.Object(id=CATEGORIA_CERRADOS_ID))
-        await interaction.channel.set_permissions(interaction.user, overwrite=None)  # Remueve permisos del autor
+
+        # Quitar permisos al autor del ticket (si existe)
+        if user_id:
+            await interaction.channel.set_permissions(discord.Object(id=user_id), overwrite=None)
+
         await interaction.channel.send(
             embed=discord.Embed(
                 title="🎫 Ticket Cerrado / Ticket Closed",
@@ -297,6 +316,7 @@ class CloseTicketButton(discord.ui.Button):
             ),
             view=ClaimView(interaction.channel, self.data_manager, is_closed=True)
         )
+
 class ReopenButton(discord.ui.Button):
     def __init__(self):
         super().__init__(label="♻️ Reabrir Ticket", style=discord.ButtonStyle.blurple)
