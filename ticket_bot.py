@@ -14,6 +14,7 @@ TICKET_CATEGORY_ID = 1373499892886016081
 CATEGORIA_CERRADOS_ID = 1389326748436398091
 ROL_ADMIN_ID = 1373739323861500156
 admin_role_id = 1373739323861500156 
+CATEGORIA_TICKETS_ID = 1373499892886016081
 LOG_CHANNEL_ID = 1382521684405518437
 DATA_FILE = "data.json"
 
@@ -137,13 +138,16 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
         self.data_manager.reduce_stock(self.producto, cantidad)
 
         # Calcular precio
-        usd, robux = "", ""
+        usd = robux = 0
         if self.producto == "coins":
             usd = round(cantidad / 50000, 2)
             robux = round(usd * 140)
         elif self.producto == "fruit":
-            usd = round(cantidad / 1000000 * 6, 2)
+            usd = round((cantidad / 1000000) * 6, 2)
             robux = round(usd * 140)
+        elif self.producto == "mojo" or self.producto == "mojos":
+            usd = round(cantidad * 0.5, 2)
+            robux = round(cantidad * 30)
 
         # Crear canal anónimo con acceso solo para admins
         safe_name = f"{self.metodo_pago.lower()}-{self.producto}"
@@ -193,6 +197,7 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
             f"✅ Ticket creado en {ticket_channel.mention} (solo admins pueden verlo).",
             ephemeral=True
         )
+
 
 
 
