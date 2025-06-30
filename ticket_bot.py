@@ -678,25 +678,24 @@ async def precios(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, view=view)
 @tree.command(
     name="calcular",
-    description="🧮 Calcula el precio de lo que quieres comprar (Coins, Robux o Fruta)",
+    description="🧮 Calcula el precio estimado de Coins o Fruta / Estimate price of Coins or Fruit",
     guild=discord.Object(id=server_configs[0])
 )
 @app_commands.describe(
-    producto="Producto a calcular (coins, fruta)",
-    cantidad="Cantidad total que deseas comprar"
+    producto="Selecciona el producto / Select the product",
+    cantidad="Cantidad a calcular / Amount to calculate"
 )
-async def calcular(interaction: discord.Interaction, producto: str, cantidad: int):
+async def calcular(
+    interaction: discord.Interaction,
+    producto: Literal["coins", "fruta"],
+    cantidad: int
+):
     producto = producto.lower()
     descuento_aplicado = False
 
-    if producto not in ["coins", "fruta"]:
-        return await interaction.response.send_message(
-            "❌ Producto inválido. Usa `coins` o `fruta`.", ephemeral=True
-        )
-
     if producto == "coins":
-        usd = (cantidad / 50000) * 2
-        robux = (cantidad / 50000) * 160
+        usd = cantidad / 50000  # 1 USD = 50k Coins
+        robux = usd * 140
 
         if cantidad >= 2_000_000:
             usd *= 0.85
@@ -704,31 +703,37 @@ async def calcular(interaction: discord.Interaction, producto: str, cantidad: in
             descuento_aplicado = True
 
         embed = discord.Embed(
-            title="🧮 Cálculo de Coins",
-            description=f"**Cantidad:** `{cantidad:,} Coins`",
-            color=discord.Color.green()
+            title="🧮 Cálculo de Coins / Coins Estimate",
+            description=f"**Cantidad / Amount:** `{cantidad:,} Coins`",
+            color=discord.Color.gold()
         )
-        embed.add_field(name="💵 USD Estimado", value=f"`{usd:.2f} USD`", inline=True)
-        embed.add_field(name="💎 Robux Estimado", value=f"`{robux:.0f} Robux`", inline=True)
+        embed.add_field(name="💵 Estimado USD / USD Estimate", value=f"`{usd:.2f} USD`", inline=True)
+        embed.add_field(name="💎 Estimado Robux / Robux Estimate", value=f"`{robux:.0f} Robux`", inline=True)
         if descuento_aplicado:
-            embed.add_field(name="🎁 Descuento aplicado", value="15% por compras mayores a 2M", inline=False)
+            embed.add_field(
+                name="🎁 Descuento / Discount",
+                value="15% aplicado por más de 2M / 15% discount for over 2M",
+                inline=False
+            )
 
     elif producto == "fruta":
         bloques = cantidad / 1_000_000
         usd = bloques * 6
-        robux = (usd / 2) * 160
+        robux = usd * 140
 
         embed = discord.Embed(
-            title="🍓 Cálculo de Fruta",
-            description=f"**Cantidad:** `{cantidad:,} Fruta`",
+            title="🍓 Cálculo de Fruta / Fruit Estimate",
+            description=f"**Cantidad / Amount:** `{cantidad:,} Fruta`",
             color=discord.Color.purple()
         )
-        embed.add_field(name="💵 USD Estimado", value=f"`{usd:.2f} USD`", inline=True)
-        embed.add_field(name="💎 Robux Estimado", value=f"`{robux:.0f} Robux`", inline=True)
+        embed.add_field(name="💵 Estimado USD / USD Estimate", value=f"`{usd:.2f} USD`", inline=True)
+        embed.add_field(name="💎 Estimado Robux / Robux Estimate", value=f"`{robux:.0f} Robux`", inline=True)
 
-    embed.set_footer(text="Cálculo estimado • Tasas configuradas", icon_url=interaction.client.user.display_avatar.url)
+    embed.set_footer(
+        text="Tasa actual / Current rate: 50k Coins = 1 USD = 140 Robux • 1M Fruta = 6 USD",
+        icon_url=interaction.client.user.display_avatar.url
+    )
     await interaction.response.send_message(embed=embed)
-
 @bot.event
 async def on_ready():
     await bot.wait_until_ready()
