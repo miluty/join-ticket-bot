@@ -22,6 +22,7 @@ DATA_FILE = "data.json"
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 tree = bot.tree
+bot.data_manager = DataManager(DATA_FILE)
 
 # ----- Parte 1.1: DataManager -----
 class DataManager:
@@ -192,6 +193,22 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
             f"✅ Ticket creado en {ticket_channel.mention} (solo admins pueden verlo).",
             ephemeral=True
         )
+
+class DataManager:
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.data = self.load_data()
+
+    def load_data(self):
+        if os.path.exists(self.file_path):
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return {}
+
+    def save_data(self):
+        with open(self.file_path, "w", encoding="utf-8") as f:
+            json.dump(self.data, f, indent=4, ensure_ascii=False)
+
 class PanelView(discord.ui.View):
     def __init__(self, data_manager: DataManager):
         super().__init__(timeout=None)
@@ -337,10 +354,11 @@ async def panel(interaction: discord.Interaction):
 
     await interaction.channel.send(
         embed=embed,
-        view=PanelView(data_manager),
-        silent=True  # Evita notificaciones si es compatible con tu versión de Discord.py
+        view=PanelView(interaction.client.data_manager),
+        silent=True  # No se notifica quién lo usó
     )
     await interaction.response.send_message("✅ Panel enviado exitosamente al canal.", ephemeral=True)
+
 
 
 @tree.command(
