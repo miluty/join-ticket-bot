@@ -10,6 +10,7 @@ from discord import app_commands
 
 # IDs personalizables
 SERVER_IDS = [1317658154397466715]
+server_configs = [1317658154397466715] 
 TICKET_CATEGORY_ID = 1373499892886016081
 CATEGORIA_CERRADOS_ID = 1389326748436398091  # <- Coloca aquí la categoría para tickets cerrados
 ROL_ADMIN_ID = 1373739323861500156
