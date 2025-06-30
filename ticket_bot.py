@@ -632,6 +632,102 @@ class AnonimatoView(discord.ui.View):
         await self.canal.edit(category=categoria_cerrados)
         await self.canal.set_permissions(cliente, overwrite=None)
         bot.data_manager.delete_ticket(self.canal.id)
+@tree.command(
+    name="precios",
+    description="💰 Muestra el panel de precios en USD y Robux / View price panel",
+    guild=discord.Object(id=server_configs[0])
+)
+async def precios(interaction: discord.Interaction):
+    # Crear tabla de precios
+    tabla = ""
+    for i in range(1, 21):  # 50k hasta 1M (50k * 20)
+        coins = 50000 * i
+        usd = 2 * i
+        robux = 160 * i
+        tabla += f"• **{coins:,} Coins** → 💵 `${usd}` → 💎 `{robux} Robux`\n"
+
+    # Embed decorado
+    embed = discord.Embed(
+        title="💰 Tabla de Precios / Price Table",
+        description="Consulta el valor estimado de Coins en USD y Robux.\n\n📊 **Tasa base:** `50,000 Coins = 2 USD = 160 Robux`",
+        color=discord.Color.gold()
+    )
+    embed.add_field(name="🔢 Valores estimados / Estimated values", value=tabla, inline=False)
+    embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/857/857681.png")
+    embed.set_footer(text="Sistema de Ventas • VentasSeguras™", icon_url=interaction.client.user.display_avatar.url)
+
+    # Vista con botones a canales
+    view = discord.ui.View(timeout=None)
+    view.add_item(discord.ui.Button(
+        label="🎫 Tickets",
+        style=discord.ButtonStyle.link,
+        url="https://discord.com/channels/1317658154397466715/1373527079382941817"
+    ))
+    view.add_item(discord.ui.Button(
+        label="📜 Reglas / Rules",
+        style=discord.ButtonStyle.link,
+        url="https://discord.com/channels/1317658154397466715/1317724700071165952"
+    ))
+    view.add_item(discord.ui.Button(
+        label="⭐ Vouches",
+        style=discord.ButtonStyle.link,
+        url="https://discord.com/channels/1317658154397466715/1389326029440552990"
+    ))
+
+    # Enviar embed con botones
+    await interaction.response.send_message(embed=embed, view=view)
+@tree.command(
+    name="calcular",
+    description="🧮 Calcula el precio de lo que quieres comprar (Coins, Robux o Fruta)",
+    guild=discord.Object(id=server_configs[0])
+)
+@app_commands.describe(
+    producto="Producto a calcular (coins, fruta)",
+    cantidad="Cantidad total que deseas comprar"
+)
+async def calcular(interaction: discord.Interaction, producto: str, cantidad: int):
+    producto = producto.lower()
+    descuento_aplicado = False
+
+    if producto not in ["coins", "fruta"]:
+        return await interaction.response.send_message(
+            "❌ Producto inválido. Usa `coins` o `fruta`.", ephemeral=True
+        )
+
+    if producto == "coins":
+        usd = (cantidad / 50000) * 2
+        robux = (cantidad / 50000) * 160
+
+        if cantidad >= 2_000_000:
+            usd *= 0.85
+            robux *= 0.85
+            descuento_aplicado = True
+
+        embed = discord.Embed(
+            title="🧮 Cálculo de Coins",
+            description=f"**Cantidad:** `{cantidad:,} Coins`",
+            color=discord.Color.green()
+        )
+        embed.add_field(name="💵 USD Estimado", value=f"`{usd:.2f} USD`", inline=True)
+        embed.add_field(name="💎 Robux Estimado", value=f"`{robux:.0f} Robux`", inline=True)
+        if descuento_aplicado:
+            embed.add_field(name="🎁 Descuento aplicado", value="15% por compras mayores a 2M", inline=False)
+
+    elif producto == "fruta":
+        bloques = cantidad / 1_000_000
+        usd = bloques * 6
+        robux = (usd / 2) * 160
+
+        embed = discord.Embed(
+            title="🍓 Cálculo de Fruta",
+            description=f"**Cantidad:** `{cantidad:,} Fruta`",
+            color=discord.Color.purple()
+        )
+        embed.add_field(name="💵 USD Estimado", value=f"`{usd:.2f} USD`", inline=True)
+        embed.add_field(name="💎 Robux Estimado", value=f"`{robux:.0f} Robux`", inline=True)
+
+    embed.set_footer(text="Cálculo estimado • Tasas configuradas", icon_url=interaction.client.user.display_avatar.url)
+    await interaction.response.send_message(embed=embed)
 
 @bot.event
 async def on_ready():
