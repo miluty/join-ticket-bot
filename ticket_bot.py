@@ -4,6 +4,7 @@ import json
 import discord
 import asyncio
 import re
+from typing import Literal
 from discord.ext import commands
 from datetime import datetime
 from discord import app_commands
