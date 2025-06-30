@@ -1,4 +1,4 @@
-# ----- Parte 1: Configuración Global y DataManager -----
+# ----- Parte 1: Imports y Variables Globales -----
 import os
 import json
 import discord
@@ -8,21 +8,14 @@ from discord.ext import commands
 from datetime import datetime
 from discord import app_commands
 
-# IDs personalizables
 SERVER_IDS = [1317658154397466715]
 server_configs = [1317658154397466715] 
 TICKET_CATEGORY_ID = 1373499892886016081
-CATEGORIA_CERRADOS_ID = 1389326748436398091  # <- Coloca aquí la categoría para tickets cerrados
+CATEGORIA_CERRADOS_ID = 1389326748436398091
 ROL_ADMIN_ID = 1373739323861500156
 admin_role_id = 1373739323861500156 
 LOG_CHANNEL_ID = 1382521684405518437
-
 DATA_FILE = "data.json"
-
-intents = discord.Intents.all()
-bot = commands.Bot(command_prefix="!", intents=intents)
-tree = bot.tree
-bot.data_manager = DataManager(DATA_FILE)
 
 # ----- Parte 1.1: DataManager -----
 class DataManager:
@@ -98,6 +91,13 @@ class DataManager:
         key = f"{product}_stock"
         self.data[key] = self.data.get(key, 0) + amount
         self.save()
+
+# ----- Parte 1.2: Inicialización del Bot -----
+intents = discord.Intents.all()
+bot = commands.Bot(command_prefix="!", intents=intents)
+tree = bot.tree
+bot.data_manager = DataManager()  # ✅ Ahora sí funciona correctamente
+
 class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase Details"):
     def __init__(self, producto: str, metodo_pago: str, data_manager: DataManager):
         super().__init__(timeout=None)
@@ -194,20 +194,6 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
             ephemeral=True
         )
 
-class DataManager:
-    def __init__(self, file_path):
-        self.file_path = file_path
-        self.data = self.load_data()
-
-    def load_data(self):
-        if os.path.exists(self.file_path):
-            with open(self.file_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        return {}
-
-    def save_data(self):
-        with open(self.file_path, "w", encoding="utf-8") as f:
-            json.dump(self.data, f, indent=4, ensure_ascii=False)
 
 class PanelView(discord.ui.View):
     def __init__(self, data_manager: DataManager):
