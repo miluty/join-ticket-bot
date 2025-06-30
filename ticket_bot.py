@@ -106,7 +106,7 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
         self.data_manager = data_manager
 
         self.cantidad = discord.ui.TextInput(
-            label=f"🔢 ¿Cuánta cantidad quieres? / How much do you want?",
+            label="🔢 Cantidad / Amount",
             placeholder="Ej: 1, 100, 1000... / Ex: 1, 100, 1000...",
             max_length=10,
             required=True
@@ -145,13 +145,13 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
             usd = round(cantidad / 1000000 * 6, 2)
             robux = round(usd * 140)
 
-        # Crear canal anónimo con acceso limitado
+        # Crear canal anónimo con acceso solo para admins
         safe_name = f"{self.metodo_pago.lower()}-{self.producto}"
-        category = discord.utils.get(interaction.guild.categories, id=ticket_category_id)
+        category = discord.utils.get(interaction.guild.categories, id=TICKET_CATEGORY_ID)
 
         overwrites = {
             interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            discord.utils.get(interaction.guild.roles, id=admin_role_id): discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+            discord.utils.get(interaction.guild.roles, id=ROL_ADMIN_ID): discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
             interaction.guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
         }
 
@@ -162,7 +162,7 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
             topic=str(interaction.user.id)
         )
 
-        # Guardar ticket
+        # Guardar datos del ticket
         self.data_manager.set_ticket(ticket_channel.id, {
             "cliente_id": str(interaction.user.id),
             "producto": self.producto,
@@ -172,7 +172,7 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
             "precio_robux": str(robux)
         })
 
-        # Embed del ticket
+        # Embed decorativo del ticket
         embed = discord.Embed(
             title="🎫 Nuevo Ticket de Compra",
             description=(
@@ -193,6 +193,7 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
             f"✅ Ticket creado en {ticket_channel.mention} (solo admins pueden verlo).",
             ephemeral=True
         )
+
 
 
 class PanelView(discord.ui.View):
