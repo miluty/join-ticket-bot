@@ -16,7 +16,7 @@ ROL_ADMIN_ID = 1373739323861500156
 VOUCH_CHANNEL_ID = 1389326029440552990
 admin_role_id = 1373739323861500156 
 CATEGORIA_TICKETS_ID = 1373499892886016081
-LOG_CHANNEL_ID = 1382521684405518437
+LOG_CHANNEL_ID = 1389326029440552990
 DATA_FILE = "data.json"
 
 # ----- Parte 1.1: DataManager -----
@@ -93,6 +93,7 @@ class DataManager:
         key = f"{product}_stock"
         self.data[key] = self.data.get(key, 0) + amount
         self.save()
+     
 
 # ----- Parte 1.2: Inicialización del Bot -----
 intents = discord.Intents.all()
@@ -142,10 +143,10 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
         usd = robux = 0
         if self.producto == "coins":
             usd = round(cantidad / 50000, 2)
-            robux = round(usd * 140)
+            robux = round(usd * 180)
         elif self.producto == "fruit":
-            usd = round((cantidad / 1000000) * 6, 2)
-            robux = round(usd * 140)
+            usd = round((cantidad / 100000) * 2, 2)
+            robux = round(usd * 150)
         elif self.producto == "mojo" or self.producto == "mojos":
             usd = round(cantidad * 0.5, 2)
             robux = round(cantidad * 30)
@@ -406,21 +407,24 @@ async def cancelarventa(interaction: discord.Interaction):
 async def ventahecha(interaction: discord.Interaction):
     canal = interaction.channel
 
-    # Verifica si es un canal de ticket válido (usa prefijo o topic con ID)
     ticket_data = bot.data_manager.get_ticket(canal.id)
     if not ticket_data:
-        await interaction.response.send_message("❌ Este comando solo se puede usar en un canal de ticket válido.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Este comando solo se puede usar en un canal de ticket válido.\n❌ This command can only be used in a valid ticket channel.",
+            ephemeral=True
+        )
         return
 
     await interaction.response.send_message(
         embed=discord.Embed(
             title="✅ Confirmar Venta / Confirm Sale",
-            description="Selecciona el producto entregado y espera la confirmación del cliente.",
+            description="Selecciona el producto entregado y espera la confirmación del cliente.\nSelect the delivered product and wait for the client's confirmation.",
             color=discord.Color.green()
         ),
         view=VentaHechaView(interaction.user),
         ephemeral=False
     )
+
 
 class VentaHechaView(discord.ui.View):
     def __init__(self, admin: discord.User):
@@ -428,42 +432,50 @@ class VentaHechaView(discord.ui.View):
         self.admin = admin
         self.add_item(ProductoSelect())
 
-    @discord.ui.button(label="✅ Confirmar Entrega", style=discord.ButtonStyle.success, emoji="📦")
+    @discord.ui.button(label="✅ Confirmar Entrega / Confirm Delivery", style=discord.ButtonStyle.success, emoji="📦")
     async def confirmar_entrega(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user != self.admin:
-            await interaction.response.send_message("❌ Solo el admin que ejecutó el comando puede confirmar.", ephemeral=True)
+            await interaction.response.send_message("❌ Solo el admin que ejecutó el comando puede confirmar.\n❌ Only the admin who executed the command can confirm.", ephemeral=True)
             return
 
         await interaction.response.send_message(
             embed=discord.Embed(
-                title="🧾 Confirmación Cliente",
-                description="¿Confirmas que **recibiste tu producto correctamente**?\n\nDo you confirm you **received your product**?",
+                title="🧾 Confirmación Cliente / Client Confirmation",
+                description=(
+                    "¿Confirmas que **recibiste tu producto correctamente**?\n"
+                    "Do you confirm you **received your product correctly**?"
+                ),
                 color=discord.Color.blue()
             ),
             view=ConfirmacionClienteView(interaction.channel, interaction.user),
             ephemeral=False
         )
 
+
 class ProductoSelect(discord.ui.Select):
     def __init__(self):
         opciones = [
-            discord.SelectOption(label="Coins", description="Entrega de monedas"),
-            discord.SelectOption(label="Fruta", description="Entrega de fruta"),
-            discord.SelectOption(label="Mojos", description="Entrega de mojos"),
-            discord.SelectOption(label="Cuenta", description="Entrega de cuenta"),
-            discord.SelectOption(label="Item Especial", description="Otro tipo de entrega"),
+            discord.SelectOption(label="Coins", description="Entrega de monedas / Coin delivery"),
+            discord.SelectOption(label="Fruta", description="Entrega de fruta / Fruit delivery"),
+            discord.SelectOption(label="Mojos", description="Entrega de mojos / Mojo delivery"),
+            discord.SelectOption(label="Cuenta", description="Entrega de cuenta / Account delivery"),
+            discord.SelectOption(label="Item Especial", description="Otro tipo de entrega / Other type of delivery"),
         ]
-        super().__init__(placeholder="Selecciona el producto entregado...", options=opciones, min_values=1, max_values=1)
+        super().__init__(
+            placeholder="Selecciona el producto entregado... / Select the delivered product...",
+            options=opciones, min_values=1, max_values=1
+        )
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.send_message(
             embed=discord.Embed(
-                title="📌 Producto Seleccionado",
-                description=f"Producto entregado: **{self.values[0]}**",
+                title="📌 Producto Seleccionado / Product Selected",
+                description=f"Producto entregado / Delivered product: **{self.values[0]}**",
                 color=discord.Color.teal()
             ),
             ephemeral=False
         )
+
 
 class ConfirmacionClienteView(discord.ui.View):
     def __init__(self, canal: discord.TextChannel, admin: discord.User):
@@ -471,22 +483,26 @@ class ConfirmacionClienteView(discord.ui.View):
         self.canal = canal
         self.admin = admin
 
-    @discord.ui.button(label="✅ Sí, confirmo", style=discord.ButtonStyle.success, emoji="👍")
+    @discord.ui.button(label="✅ Sí, confirmo / Yes, I confirm", style=discord.ButtonStyle.success, emoji="👍")
     async def confirmar(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_message(
             embed=discord.Embed(
-                title="🤖 ¿Deseas ser anónimo?",
-                description="Haz clic en un botón para elegir si tu nombre aparece en el vouch.",
+                title="🤖 ¿Deseas ser anónimo? / Do you want to be anonymous?",
+                description="Haz clic en un botón para elegir si tu nombre aparece en el vouch.\nClick a button to choose if your name appears in the vouch.",
                 color=discord.Color.purple()
             ),
             view=AnonimatoView(interaction.user, self.canal, self.admin),
             ephemeral=True
         )
 
-    @discord.ui.button(label="❌ No recibí", style=discord.ButtonStyle.danger, emoji="❗")
+    @discord.ui.button(label="❌ No recibí / I didn't receive", style=discord.ButtonStyle.danger, emoji="❗")
     async def no_confirmar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("⛔ Gracias por tu respuesta. El staff revisará el caso.", ephemeral=True)
-        await self.canal.send(f"⚠️ {interaction.user.mention} indicó que **NO recibió el producto**. El ticket quedará abierto para revisión.")
+        await interaction.response.send_message(
+            "⛔ Gracias por tu respuesta. El staff revisará el caso.\n⛔ Thank you for your response. Staff will review the case.",
+            ephemeral=True
+        )
+        await self.canal.send(f"⚠️ {interaction.user.mention} indicó que **NO recibió el producto**.\n⚠️ The user indicated that they **did NOT receive the product**.")
+
 
 class AnonimatoView(discord.ui.View):
     def __init__(self, cliente: discord.User, canal: discord.TextChannel, admin: discord.User):
@@ -495,18 +511,18 @@ class AnonimatoView(discord.ui.View):
         self.canal = canal
         self.admin = admin
 
-    @discord.ui.button(label="🙈 Anónimo", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="🙈 Anónimo / Anonymous", style=discord.ButtonStyle.secondary)
     async def anonimo(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.enviar_vouch(interaction, anonimo=True)
 
-    @discord.ui.button(label="🙋 Con nombre", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="🙋 Con nombre / With name", style=discord.ButtonStyle.primary)
     async def con_nombre(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.enviar_vouch(interaction, anonimo=False)
 
     async def enviar_vouch(self, interaction: discord.Interaction, anonimo: bool):
         ticket_data = bot.data_manager.get_ticket(self.canal.id)
         if not ticket_data:
-            await interaction.response.send_message("❌ No se encontró información del ticket.", ephemeral=True)
+            await interaction.response.send_message("❌ No se encontró información del ticket.\n❌ No ticket info found.", ephemeral=True)
             return
 
         cliente = interaction.user
@@ -515,38 +531,31 @@ class AnonimatoView(discord.ui.View):
         precio_usd = ticket_data["precio_usd"]
         precio_robux = ticket_data["precio_robux"]
 
-        # Crear embed del vouch
         embed = discord.Embed(
-            title="📦 Nueva Venta Realizada",
+            title="📦 Nueva Venta Realizada / New Sale Completed",
             description=(
-                f"**Producto:** {producto.capitalize()}\n"
-                f"**Cantidad:** {cantidad}\n"
-                f"💵 **Precio:** ${precio_usd} / {precio_robux} R$"
+                f"**Producto / Product:** {producto.capitalize()}\n"
+                f"**Cantidad / Quantity:** {cantidad}\n"
+                f"💵 **Precio / Price:** ${precio_usd} / {precio_robux} R$"
             ),
             color=discord.Color.green(),
             timestamp=datetime.utcnow()
         )
         if not anonimo:
-            embed.set_footer(text=f"Cliente: {cliente}", icon_url=cliente.display_avatar.url)
+            embed.set_footer(text=f"Cliente / Client: {cliente}", icon_url=cliente.display_avatar.url)
         else:
-            embed.set_footer(text="Cliente anónimo")
+            embed.set_footer(text="Cliente anónimo / Anonymous client")
 
         log_channel = interaction.guild.get_channel(LOG_CHANNEL_ID)
         if log_channel:
             await log_channel.send(embed=embed)
 
-        await interaction.response.send_message("✅ ¡Gracias por tu compra!", ephemeral=True)
+        await interaction.response.send_message("✅ ¡Gracias por tu compra! / Thanks for your purchase!", ephemeral=True)
 
-        # Mover canal a categoría de cerrados
         categoria_cerrados = discord.utils.get(interaction.guild.categories, id=CATEGORIA_CERRADOS_ID)
         await self.canal.edit(category=categoria_cerrados)
-
-        # Quitar permisos al cliente
         await self.canal.set_permissions(cliente, overwrite=None)
-
-        # Eliminar registro del ticket
         bot.data_manager.delete_ticket(self.canal.id)
-
 
 @bot.event
 async def on_ready():
