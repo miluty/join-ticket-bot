@@ -311,50 +311,37 @@ class ReopenButton(discord.ui.Button):
 
 @tree.command(
     name="panel",
-    description="🎟️ Publicar panel de ventas anónimo / Post anonymous sales panel",
-    guild=discord.Object(id=server_configs[0])  # Tu servidor
+    description="🎟️ Panel de ventas anónimo para todos / Public anonymous sales panel",
+    guild=discord.Object(id=server_configs[0])
 )
 async def panel(interaction: discord.Interaction):
-    # Solo administradores pueden usar el comando
-    if not any(role.id == admin_role_id for role in interaction.user.roles):
-        await interaction.response.send_message(
-            embed=discord.Embed(
-                title="🔒 Acceso denegado / Access Denied",
-                description="❌ Este comando es solo para administradores.\nOnly administrators can use this command.",
-                color=discord.Color.red()
-            ),
-            ephemeral=True
-        )
+    if admin_role_id not in [role.id for role in interaction.user.roles]:
+        await interaction.response.send_message("❌ Solo administradores pueden usar este comando.", ephemeral=True)
         return
 
     embed = discord.Embed(
-        title="🛒 Panel de Ventas Privadas / Anonymous Sales Panel",
+        title="🛍️ Panel Público de Ventas / Public Sales Panel",
         description=(
-            "🎉 **¡Bienvenido al sistema de ventas anónimas!**\n"
-            "🔐 Todo el proceso es completamente **privado y confidencial**.\n"
-            "📦 Selecciona tu método de pago usando los botones de abajo y se abrirá un ticket exclusivo para ti.\n\n"
-            "🎉 **Welcome to the Anonymous Sales System!**\n"
-            "🔐 Everything is **fully private and confidential**.\n"
-            "📦 Choose your payment method below to open your private ticket."
+            "¡Bienvenido al sistema automático y anónimo de ventas!\n\n"
+            "🔒 **Privacidad 100% garantizada** — Solo los administradores verán tu información.\n"
+            "👇 Selecciona el producto que deseas comprar en el menú desplegable.\n\n"
+            "—\n"
+            "**Welcome to the automatic and anonymous sales system!**\n"
+            "🔒 100% Private — Only admins will see your information.\n"
+            "👇 Use the dropdown to choose the product you want."
         ),
-        color=discord.Color.from_rgb(88, 101, 242)  # color Discord
+        color=discord.Color.teal()
     )
     embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/4290/4290854.png")
-    embed.set_footer(text="Sistema de Ventas | Anónimo, rápido y seguro / Sales System | Anonymous, fast & secure")
-
-    await interaction.response.send_message(
-        embed=discord.Embed(
-            title="✅ Panel enviado correctamente / Panel sent successfully",
-            description="Ya pueden usar los botones para abrir su ticket privado.\nUsers can now click buttons to open their private ticket.",
-            color=discord.Color.green()
-        ),
-        ephemeral=True
-    )
+    embed.set_footer(text="Sistema de tickets anónimos | Anonymous ticket system")
 
     await interaction.channel.send(
         embed=embed,
-        view=TicketPanelView()  # Vista con botones: PayPal, Robux, Giftcard
+        view=PanelView(data_manager),
+        silent=True  # Evita notificaciones si es compatible con tu versión de Discord.py
     )
+    await interaction.response.send_message("✅ Panel enviado exitosamente al canal.", ephemeral=True)
+
 
 @tree.command(
     name="cancelarventa",
