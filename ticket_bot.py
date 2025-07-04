@@ -668,7 +668,7 @@ async def precios(interaction: discord.Interaction):
                 ),
                 discord.SelectOption(
                     label="Precios Especiales / Special Prices",
-                    description="Para compras mayores a 1.5M Coins (20% OFF)",
+                    description="Para compras mayores a 1.5M Coins (20% OFF en USD)",
                     emoji="💎",
                     value="especial"
                 ),
@@ -680,10 +680,10 @@ async def precios(interaction: discord.Interaction):
 
             if selected == "normal":
                 tabla = ""
-                for i in range(1, 31):  # 50k a 1M
+                for i in range(1, 21):  # 50k a 1M
                     coins = 50000 * i
                     usd = round(0.80 * i, 2)
-                    robux = 56 * i
+                    robux = 160 * i  # Robux fijos
                     tabla += (
                         f"🪙 **{coins:,} Coins**\n"
                         f"   💵 **USD:** `${usd}`\n"
@@ -694,27 +694,28 @@ async def precios(interaction: discord.Interaction):
                 descripcion = (
                     "Consulta el valor estimado de Coins en diferentes monedas digitales.\n"
                     "Check the estimated value of Coins in different digital currencies.\n\n"
-                    "📊 **Tasa Base / Base Rate:** `50,000 Coins = 0.80 USD = 56 Robux`\n"
+                    "📊 **Tasa Base / Base Rate:** `50,000 Coins = 0.80 USD = 160 Robux`\n"
                     "🔔 **Compras mayores a 1.5M Coins reciben precio especial!**"
                 )
             else:
                 tabla = ""
-                for i in range(16, 41):  # 1.6M a 4M
-                    coins = 100000 * i
-                    usd = round((1.60 * i) * 0.80, 2)  # -20% descuento
-                    robux = round((112 * i) * 0.80)
+                for i in range(30, 81):  # 1.5M a 4M en múltiplos de 50k
+                    coins = 50000 * i
+                    usd_normal = 0.80 * i
+                    usd_descuento = round(usd_normal * 0.80, 2)  # -20% solo en USD
+                    robux = 160 * i  # Robux sin descuento
                     tabla += (
                         f"✨ **{coins:,} Coins**\n"
-                        f"   💵 **USD Especial (-20%)**: `${usd}`\n"
-                        f"   💎 **Robux Especial (-20%)**: `{robux}`\n"
+                        f"   💵 **USD Especial (-20%)**: `${usd_descuento}`\n"
+                        f"   💎 **Robux:** `{robux}`\n"
                         f"━━━━━━━━━━━━━━━━━━━━━━━\n"
                     )
-                title = "💎 Precios Especiales / Special Prices (20% OFF)"
+                title = "💎 Precios Especiales / Special Prices (20% OFF USD)"
                 descripcion = (
-                    "Valores especiales para compras grandes con **20% de descuento**.\n"
-                    "Special values for large purchases with **20% OFF**.\n\n"
-                    "🎯 **Tasa Especial / Special Rate:** `100,000 Coins ≈ 1.60 USD → 1.28 USD`\n"
-                    "✅ Aplica desde 1.6M Coins en adelante"
+                    "Valores especiales para compras grandes con **20% de descuento en USD**.\n"
+                    "Special values for large purchases with **20% OFF in USD only**.\n\n"
+                    "🎯 **Tasa Base:** `50,000 Coins = 0.80 USD = 160 Robux`\n"
+                    "✅ Aplica desde 1.5M Coins en adelante"
                 )
 
             embed = discord.Embed(
@@ -757,6 +758,7 @@ async def precios(interaction: discord.Interaction):
         view=view,
         ephemeral=False
     )
+
 
 @tree.command(
     name="calcular",
