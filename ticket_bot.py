@@ -634,13 +634,28 @@ class AnonimatoView(discord.ui.View):
         await self.canal.set_permissions(cliente, overwrite=None)
         bot.data_manager.delete_ticket(self.canal.id)
 
-
 @tree.command(
     name="precios",
     description="💰 Muestra el panel de precios en USD y Robux / View price panel",
     guild=discord.Object(id=server_configs[0])
 )
 async def precios(interaction: discord.Interaction):
+
+    def dividir_en_campos(tabla: str, titulo_base: str):
+        bloques = []
+        lineas = tabla.strip().split("━━━━━━━━━━━━━━━━━━━━━━━\n")
+        chunk = ""
+        count = 1
+        for linea in lineas:
+            if len(chunk + linea) < 950:
+                chunk += linea + "━━━━━━━━━━━━━━━━━━━━━━━\n"
+            else:
+                bloques.append((f"{titulo_base} {count}", chunk))
+                chunk = linea + "━━━━━━━━━━━━━━━━━━━━━━━\n"
+                count += 1
+        if chunk:
+            bloques.append((f"{titulo_base} {count}", chunk))
+        return bloques
 
     class PriceSelect(discord.ui.Select):
         def __init__(self):
@@ -665,7 +680,7 @@ async def precios(interaction: discord.Interaction):
 
             if selected == "normal":
                 tabla = ""
-                for i in range(1, 21):  # 50k hasta 1M
+                for i in range(1, 21):  # 50k a 1M
                     coins = 50000 * i
                     usd = round(0.75 * i, 2)
                     robux = 105 * i
@@ -684,9 +699,9 @@ async def precios(interaction: discord.Interaction):
                 )
             else:
                 tabla = ""
-                for i in range(16, 41):  # Desde 800k hasta 2M
+                for i in range(16, 41):  # 1.6M a 4M
                     coins = 100000 * i
-                    usd = round((0.70 * i), 2)  # precio especial
+                    usd = round(0.70 * i, 2)
                     robux = 98 * i
                     tabla += (
                         f"✨ **{coins:,} Coins**\n"
@@ -707,7 +722,10 @@ async def precios(interaction: discord.Interaction):
                 description=descripcion,
                 color=discord.Color.gold()
             )
-            embed.add_field(name="📈 Valores estimados / Estimated Values", value=tabla, inline=False)
+            campos = dividir_en_campos(tabla, "📈 Valores estimados / Estimated Values")
+            for nombre, valor in campos:
+                embed.add_field(name=nombre, value=valor, inline=False)
+
             embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/857/857681.png")
             embed.set_footer(
                 text="Sistema de Ventas • VentasSeguras™",
@@ -739,8 +757,6 @@ async def precios(interaction: discord.Interaction):
         view=view,
         ephemeral=False
     )
-
-
 
 
 @tree.command(
