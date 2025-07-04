@@ -668,7 +668,7 @@ async def precios(interaction: discord.Interaction):
                 ),
                 discord.SelectOption(
                     label="Precios Especiales / Special Prices",
-                    description="Para compras mayores a 1.5M Coins (20% OFF en USD)",
+                    description="Para compras mayores a 1.5M Coins (15% OFF en USD)",
                     emoji="💎",
                     value="especial"
                 ),
@@ -682,7 +682,7 @@ async def precios(interaction: discord.Interaction):
                 tabla = ""
                 for i in range(1, 21):  # 50k a 1M
                     coins = 50000 * i
-                    usd = round(0.80 * i * 2, 2)  # 1M = 16 USD
+                    usd = round(0.75 * i, 2)
                     robux = 160 * i
                     tabla += (
                         f"🪙 **{coins:,} Coins**\n"
@@ -694,27 +694,27 @@ async def precios(interaction: discord.Interaction):
                 descripcion = (
                     "Consulta el valor estimado de Coins en diferentes monedas digitales.\n"
                     "Check the estimated value of Coins in different digital currencies.\n\n"
-                    "📊 **Tasa Base / Base Rate:** `1M Coins = 16 USD` y `50k = 160 Robux`\n"
+                    "📊 **Tasa Base / Base Rate:** `1M Coins = 15 USD` | `50k = 160 Robux`\n"
                     "🔔 **Compras mayores a 1.5M Coins reciben precio especial!**"
                 )
             else:
                 tabla = ""
-                for i in range(30, 81):  # 1.5M a 4M en múltiplos de 50k
+                for i in range(30, 61, 5):  # 1.5M a 3M en saltos de 250k
                     coins = 50000 * i
-                    usd_normal = 0.80 * i * 2
-                    usd_descuento = round(usd_normal * 0.80, 2)
+                    usd_base = 0.75 * i
+                    usd_desc = round(usd_base * 0.85, 2)  # 15% descuento
                     robux = 160 * i
                     tabla += (
                         f"✨ **{coins:,} Coins**\n"
-                        f"   💵 **USD Especial (-20%)**: `${usd_descuento}`\n"
+                        f"   💵 **USD Especial (-15%)**: `${usd_desc}`\n"
                         f"   💎 **Robux:** `{robux}`\n"
                         f"━━━━━━━━━━━━━━━━━━━━━━━\n"
                     )
-                title = "💎 Precios Especiales / Special Prices (20% OFF USD)"
+                title = "💎 Precios Especiales / Special Prices (15% OFF USD)"
                 descripcion = (
-                    "Valores especiales para compras grandes con **20% de descuento en USD**.\n"
-                    "Special values for large purchases with **20% OFF in USD only**.\n\n"
-                    "🎯 **Tasa Base:** `1M Coins = 16 USD` y `50k = 160 Robux`\n"
+                    "Valores especiales para compras grandes con **15% de descuento en USD**.\n"
+                    "Special values for large purchases with **15% OFF in USD only**.\n\n"
+                    "📊 **Tasa Base / Base Rate:** `1M Coins = 15 USD` | `50k = 160 Robux`\n"
                     "✅ Aplica desde 1.5M Coins en adelante"
                 )
 
