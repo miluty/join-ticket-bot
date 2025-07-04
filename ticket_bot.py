@@ -680,7 +680,7 @@ async def precios(interaction: discord.Interaction):
 
             if selected == "normal":
                 tabla = ""
-                for i in range(1, 21):  # 50k a 1M
+                for i in range(1, 31):  # 50k a 1M
                     coins = 50000 * i
                     usd = round(0.80 * i, 2)
                     robux = 56 * i
