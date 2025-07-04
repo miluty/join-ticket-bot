@@ -143,7 +143,7 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
         # Calcular precios
         usd = robux = 0
         if self.producto == "coins":
-            usd = round(cantidad / 50000, 2)
+            usd = round(cantidad / 50000, 1)
             robux = round(usd * 160)
         elif self.producto == "fruit":
             usd = round((cantidad / 100000) * 2, 2)
@@ -682,7 +682,7 @@ async def precios(interaction: discord.Interaction):
                 tabla = ""
                 for i in range(1, 21):  # 50k a 1M
                     coins = 50000 * i
-                    usd = round(0.75 * i, 2)
+                    usd = round(0.80 * i, 2)
                     robux = 160 * i
                     tabla += (
                         f"🪙 **{coins:,} Coins**\n"
@@ -694,14 +694,14 @@ async def precios(interaction: discord.Interaction):
                 descripcion = (
                     "Consulta el valor estimado de Coins en diferentes monedas digitales.\n"
                     "Check the estimated value of Coins in different digital currencies.\n\n"
-                    "📊 **Tasa Base / Base Rate:** `1M Coins = 15 USD` | `50k = 160 Robux`\n"
+                    "📊 **Tasa Base / Base Rate:** `1M Coins = 16 USD` | `50k = 160 Robux`\n"
                     "🔔 **Compras mayores a 1.5M Coins reciben precio especial!**"
                 )
             else:
                 tabla = ""
                 for i in range(30, 61, 5):  # 1.5M a 3M en saltos de 250k
                     coins = 50000 * i
-                    usd_base = 0.75 * i
+                    usd_base = 0.80 * i
                     usd_desc = round(usd_base * 0.85, 2)  # 15% descuento
                     robux = 160 * i
                     tabla += (
@@ -714,7 +714,7 @@ async def precios(interaction: discord.Interaction):
                 descripcion = (
                     "Valores especiales para compras grandes con **15% de descuento en USD**.\n"
                     "Special values for large purchases with **15% OFF in USD only**.\n\n"
-                    "📊 **Tasa Base / Base Rate:** `1M Coins = 15 USD` | `50k = 160 Robux`\n"
+                    "📊 **Tasa Base / Base Rate:** `1M Coins = 16 USD` | `50k = 160 Robux`\n"
                     "✅ Aplica desde 1.5M Coins en adelante"
                 )
 
@@ -758,6 +758,7 @@ async def precios(interaction: discord.Interaction):
         view=view,
         ephemeral=False
     )
+
 
 @tree.command(
     name="calcular",
