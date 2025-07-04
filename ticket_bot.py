@@ -682,8 +682,8 @@ async def precios(interaction: discord.Interaction):
                 tabla = ""
                 for i in range(1, 21):  # 50k a 1M
                     coins = 50000 * i
-                    usd = round(0.75 * i, 2)
-                    robux = 105 * i
+                    usd = round(0.80 * i, 2)
+                    robux = 56 * i
                     tabla += (
                         f"🪙 **{coins:,} Coins**\n"
                         f"   💵 **USD:** `${usd}`\n"
@@ -694,15 +694,15 @@ async def precios(interaction: discord.Interaction):
                 descripcion = (
                     "Consulta el valor estimado de Coins en diferentes monedas digitales.\n"
                     "Check the estimated value of Coins in different digital currencies.\n\n"
-                    "📊 **Tasa Base / Base Rate:** `50,000 Coins = 0.75 USD = 105 Robux`\n"
+                    "📊 **Tasa Base / Base Rate:** `50,000 Coins = 0.80 USD = 56 Robux`\n"
                     "🔔 **Compras mayores a 1.5M Coins reciben precio especial!**"
                 )
             else:
                 tabla = ""
                 for i in range(16, 41):  # 1.6M a 4M
                     coins = 100000 * i
-                    usd = round((0.75 * 2 * i) * 0.80, 2)  # -20% descuento
-                    robux = round((105 * 2 * i) * 0.80)
+                    usd = round((1.60 * i) * 0.80, 2)  # -20% descuento
+                    robux = round((112 * i) * 0.80)
                     tabla += (
                         f"✨ **{coins:,} Coins**\n"
                         f"   💵 **USD Especial (-20%)**: `${usd}`\n"
@@ -713,7 +713,7 @@ async def precios(interaction: discord.Interaction):
                 descripcion = (
                     "Valores especiales para compras grandes con **20% de descuento**.\n"
                     "Special values for large purchases with **20% OFF**.\n\n"
-                    "🎯 **Tasa Especial / Special Rate:** `100,000 Coins ≈ 1.20 USD → 0.96 USD`\n"
+                    "🎯 **Tasa Especial / Special Rate:** `100,000 Coins ≈ 1.60 USD → 1.28 USD`\n"
                     "✅ Aplica desde 1.6M Coins en adelante"
                 )
 
@@ -757,8 +757,6 @@ async def precios(interaction: discord.Interaction):
         view=view,
         ephemeral=False
     )
-
-
 
 @tree.command(
     name="calcular",
