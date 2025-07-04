@@ -633,6 +633,8 @@ class AnonimatoView(discord.ui.View):
         await self.canal.edit(category=categoria_cerrados)
         await self.canal.set_permissions(cliente, overwrite=None)
         bot.data_manager.delete_ticket(self.canal.id)
+
+
 @tree.command(
     name="precios",
     description="💰 Muestra el panel de precios en USD y Robux / View price panel",
@@ -643,21 +645,34 @@ async def precios(interaction: discord.Interaction):
     tabla = ""
     for i in range(1, 21):  # 50k hasta 1M (50k * 20)
         coins = 50000 * i
-        usd = 2 * i
-        robux = 160 * i
+        usd = round(0.75 * i, 2)
+        robux = 105 * i
         tabla += f"• **{coins:,} Coins** → 💵 `${usd}` → 💎 `{robux} Robux`\n"
 
     # Embed decorado
     embed = discord.Embed(
         title="💰 Tabla de Precios / Price Table",
-        description="Consulta el valor estimado de Coins en USD y Robux.\n\n📊 **Tasa base:** `50,000 Coins = 2 USD = 160 Robux`",
+        description=(
+            "Consulta el valor estimado de Coins en USD y Robux.\n"
+            "Check the estimated value of Coins in USD and Robux.\n\n"
+            "📊 **Tasa Base / Base Rate:** `50,000 Coins = 0.75 USD = 105 Robux`\n"
+            "🔔 **Compras mayores a 1.5M Coins reciben precio especial!**\n"
+            "🔔 **Purchases over 1.5M Coins receive special pricing!**"
+        ),
         color=discord.Color.gold()
     )
-    embed.add_field(name="🔢 Valores estimados / Estimated values", value=tabla, inline=False)
+    embed.add_field(
+        name="🔢 Valores estimados / Estimated Values",
+        value=tabla,
+        inline=False
+    )
     embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/857/857681.png")
-    embed.set_footer(text="Sistema de Ventas • VentasSeguras™", icon_url=interaction.client.user.display_avatar.url)
+    embed.set_footer(
+        text="Sistema de Ventas • VentasSeguras™",
+        icon_url=interaction.client.user.display_avatar.url
+    )
 
-    # Vista con botones a canales
+    # Vista con botones
     view = discord.ui.View(timeout=None)
     view.add_item(discord.ui.Button(
         label="🎫 Tickets",
@@ -675,8 +690,10 @@ async def precios(interaction: discord.Interaction):
         url="https://discord.com/channels/1317658154397466715/1389326029440552990"
     ))
 
-    # Enviar embed con botones
-    await interaction.response.send_message(embed=embed, view=view)
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+
+
 @tree.command(
     name="calcular",
     description="🧮 Calcula el precio estimado de Coins o Fruta / Estimate price of Coins or Fruit",
