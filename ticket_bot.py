@@ -643,15 +643,15 @@ async def precios(interaction: discord.Interaction):
 
     def dividir_en_campos(tabla: str, titulo_base: str):
         bloques = []
-        lineas = tabla.strip().split("━━━━━━━━━━━━━━━━━━━━━━━\n")
+        lineas = tabla.strip().split("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
         chunk = ""
         count = 1
         for linea in lineas:
             if len(chunk + linea) < 950:
-                chunk += linea + "━━━━━━━━━━━━━━━━━━━━━━━\n"
+                chunk += linea + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             else:
                 bloques.append((f"{titulo_base} {count}", chunk))
-                chunk = linea + "━━━━━━━━━━━━━━━━━━━━━━━\n"
+                chunk = linea + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 count += 1
         if chunk:
             bloques.append((f"{titulo_base} {count}", chunk))
@@ -668,7 +668,7 @@ async def precios(interaction: discord.Interaction):
                 ),
                 discord.SelectOption(
                     label="Precios Especiales / Special Prices",
-                    description="Para compras mayores a 1.5M Coins (20% OFF en USD)",
+                    description="Compras mayores a 1.5M Coins (20% OFF en USD)",
                     emoji="💎",
                     value="especial"
                 ),
@@ -682,40 +682,38 @@ async def precios(interaction: discord.Interaction):
                 tabla = ""
                 for i in range(1, 21):  # 50k a 1M
                     coins = 50000 * i
-                    usd = round(0.80 * i, 2)
-                    robux = 160 * i  # Robux fijos
+                    usd = round((16 / 1_000_000) * coins, 2)
+                    robux = 160 * i
                     tabla += (
                         f"🪙 **{coins:,} Coins**\n"
                         f"   💵 **USD:** `${usd}`\n"
                         f"   💎 **Robux:** `{robux}`\n"
-                        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                     )
                 title = "💰 Precios Estándar / Standard Prices"
                 descripcion = (
                     "Consulta el valor estimado de Coins en diferentes monedas digitales.\n"
                     "Check the estimated value of Coins in different digital currencies.\n\n"
-                    "📊 **Tasa Base / Base Rate:** `50,000 Coins = 0.80 USD = 160 Robux`\n"
-                    "🔔 **Compras mayores a 1.5M Coins reciben precio especial!**"
+                    "📊 **Tasa Base / Base Rate:** `1M Coins = 16 USD` y `50k = 160 Robux`
                 )
             else:
                 tabla = ""
-                for i in range(30, 81):  # 1.5M a 4M en múltiplos de 50k
+                for i in range(30, 81):  # desde 1.5M hasta 4M
                     coins = 50000 * i
-                    usd_normal = 0.80 * i
-                    usd_descuento = round(usd_normal * 0.80, 2)  # -20% solo en USD
-                    robux = 160 * i  # Robux sin descuento
+                    usd_normal = (16 / 1_000_000) * coins
+                    usd_descuento = round(usd_normal * 0.80, 2)
+                    robux = 160 * i
                     tabla += (
                         f"✨ **{coins:,} Coins**\n"
                         f"   💵 **USD Especial (-20%)**: `${usd_descuento}`\n"
                         f"   💎 **Robux:** `{robux}`\n"
-                        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                     )
                 title = "💎 Precios Especiales / Special Prices (20% OFF USD)"
                 descripcion = (
                     "Valores especiales para compras grandes con **20% de descuento en USD**.\n"
                     "Special values for large purchases with **20% OFF in USD only**.\n\n"
-                    "🎯 **Tasa Base:** `50,000 Coins = 0.80 USD = 160 Robux`\n"
-                    "✅ Aplica desde 1.5M Coins en adelante"
+                    "🌟 Desde 1.5M Coins en adelante. Robux se mantiene fijo: `50k = 160 Robux`"
                 )
 
             embed = discord.Embed(
@@ -758,8 +756,6 @@ async def precios(interaction: discord.Interaction):
         view=view,
         ephemeral=False
     )
-
-
 @tree.command(
     name="calcular",
     description="🧮 Calcula el precio estimado de Coins o Fruta / Estimate price of Coins or Fruit",
