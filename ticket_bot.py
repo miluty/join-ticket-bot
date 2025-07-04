@@ -641,56 +641,105 @@ class AnonimatoView(discord.ui.View):
     guild=discord.Object(id=server_configs[0])
 )
 async def precios(interaction: discord.Interaction):
-    # Crear tabla de precios
-    tabla = ""
-    for i in range(1, 21):  # 50k hasta 1M (50k * 20)
-        coins = 50000 * i
-        usd = round(0.75 * i, 2)
-        robux = 105 * i
-        tabla += f"• **{coins:,} Coins** → 💵 `${usd}` → 💎 `{robux} Robux`\n"
 
-    # Embed decorado
-    embed = discord.Embed(
-        title="💰 Tabla de Precios / Price Table",
-        description=(
-            "Consulta el valor estimado de Coins en USD y Robux.\n"
-            "Check the estimated value of Coins in USD and Robux.\n\n"
-            "📊 **Tasa Base / Base Rate:** `50,000 Coins = 0.75 USD = 105 Robux`\n"
-            "🔔 **Compras mayores a 1.5M Coins reciben precio especial!**\n"
-            "🔔 **Purchases over 1.5M Coins receive special pricing!**"
-        ),
-        color=discord.Color.gold()
-    )
-    embed.add_field(
-        name="🔢 Valores estimados / Estimated Values",
-        value=tabla,
-        inline=False
-    )
-    embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/857/857681.png")
-    embed.set_footer(
-        text="Sistema de Ventas • VentasSeguras™",
-        icon_url=interaction.client.user.display_avatar.url
+    class PriceSelect(discord.ui.Select):
+        def __init__(self):
+            options = [
+                discord.SelectOption(
+                    label="Precios Normales / Standard Prices",
+                    description="Valores desde 50k hasta 1M Coins",
+                    emoji="📊",
+                    value="normal"
+                ),
+                discord.SelectOption(
+                    label="Precios Especiales / Special Prices",
+                    description="Para compras mayores a 1.5M Coins",
+                    emoji="💎",
+                    value="especial"
+                ),
+            ]
+            super().__init__(placeholder="📌 Selecciona una opción / Choose an option", options=options, min_values=1, max_values=1)
+
+        async def callback(self, interaction_select: discord.Interaction):
+            selected = self.values[0]
+
+            if selected == "normal":
+                tabla = ""
+                for i in range(1, 21):  # 50k hasta 1M
+                    coins = 50000 * i
+                    usd = round(0.75 * i, 2)
+                    robux = 105 * i
+                    tabla += (
+                        f"🪙 **{coins:,} Coins**\n"
+                        f"   💵 **USD:** `${usd}`\n"
+                        f"   💎 **Robux:** `{robux}`\n"
+                        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    )
+                title = "💰 Precios Estándar / Standard Prices"
+                descripcion = (
+                    "Consulta el valor estimado de Coins en diferentes monedas digitales.\n"
+                    "Check the estimated value of Coins in different digital currencies.\n\n"
+                    "📊 **Tasa Base / Base Rate:** `50,000 Coins = 0.75 USD = 105 Robux`\n"
+                    "🔔 **Compras mayores a 1.5M Coins reciben precio especial!**"
+                )
+            else:
+                tabla = ""
+                for i in range(16, 41):  # Desde 800k hasta 2M
+                    coins = 100000 * i
+                    usd = round((0.70 * i), 2)  # precio especial
+                    robux = 98 * i
+                    tabla += (
+                        f"✨ **{coins:,} Coins**\n"
+                        f"   💵 **USD Especial:** `${usd}`\n"
+                        f"   💎 **Robux Especial:** `{robux}`\n"
+                        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    )
+                title = "💎 Precios Especiales / Special Prices"
+                descripcion = (
+                    "Valores especiales para compras grandes.\n"
+                    "Special values for large purchases.\n\n"
+                    "🎯 **Tasa Especial / Special Rate:** `100,000 Coins = 0.70 USD = 98 Robux`\n"
+                    "✅ Aplica desde 1.5M Coins en adelante"
+                )
+
+            embed = discord.Embed(
+                title=title,
+                description=descripcion,
+                color=discord.Color.gold()
+            )
+            embed.add_field(name="📈 Valores estimados / Estimated Values", value=tabla, inline=False)
+            embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/857/857681.png")
+            embed.set_footer(
+                text="Sistema de Ventas • VentasSeguras™",
+                icon_url=interaction.client.user.display_avatar.url
+            )
+
+            await interaction_select.response.edit_message(embed=embed, view=view)
+
+    class PriceView(discord.ui.View):
+        def __init__(self):
+            super().__init__(timeout=None)
+            self.add_item(PriceSelect())
+            self.add_item(discord.ui.Button(
+                label="🎫 Tickets", style=discord.ButtonStyle.link,
+                url="https://discord.com/channels/1317658154397466715/1373527079382941817"
+            ))
+            self.add_item(discord.ui.Button(
+                label="📜 Reglas / Rules", style=discord.ButtonStyle.link,
+                url="https://discord.com/channels/1317658154397466715/1317724700071165952"
+            ))
+            self.add_item(discord.ui.Button(
+                label="⭐ Vouches", style=discord.ButtonStyle.link,
+                url="https://discord.com/channels/1317658154397466715/1389326029440552990"
+            ))
+
+    view = PriceView()
+    await interaction.response.send_message(
+        content="🧾 **Selecciona una categoría de precios para ver detalles**\n*Select a price category to view details*",
+        view=view,
+        ephemeral=False
     )
 
-    # Vista con botones
-    view = discord.ui.View(timeout=None)
-    view.add_item(discord.ui.Button(
-        label="🎫 Tickets",
-        style=discord.ButtonStyle.link,
-        url="https://discord.com/channels/1317658154397466715/1373527079382941817"
-    ))
-    view.add_item(discord.ui.Button(
-        label="📜 Reglas / Rules",
-        style=discord.ButtonStyle.link,
-        url="https://discord.com/channels/1317658154397466715/1317724700071165952"
-    ))
-    view.add_item(discord.ui.Button(
-        label="⭐ Vouches",
-        style=discord.ButtonStyle.link,
-        url="https://discord.com/channels/1317658154397466715/1389326029440552990"
-    ))
-
-    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 
 
