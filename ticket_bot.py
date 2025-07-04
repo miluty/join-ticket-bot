@@ -668,7 +668,7 @@ async def precios(interaction: discord.Interaction):
                 ),
                 discord.SelectOption(
                     label="Precios Especiales / Special Prices",
-                    description="Para compras mayores a 1.5M Coins",
+                    description="Para compras mayores a 1.5M Coins (20% OFF)",
                     emoji="💎",
                     value="especial"
                 ),
@@ -701,20 +701,20 @@ async def precios(interaction: discord.Interaction):
                 tabla = ""
                 for i in range(16, 41):  # 1.6M a 4M
                     coins = 100000 * i
-                    usd = round(0.70 * i, 2)
-                    robux = 98 * i
+                    usd = round((0.75 * 2 * i) * 0.80, 2)  # -20% descuento
+                    robux = round((105 * 2 * i) * 0.80)
                     tabla += (
                         f"✨ **{coins:,} Coins**\n"
-                        f"   💵 **USD Especial:** `${usd}`\n"
-                        f"   💎 **Robux Especial:** `{robux}`\n"
+                        f"   💵 **USD Especial (-20%)**: `${usd}`\n"
+                        f"   💎 **Robux Especial (-20%)**: `{robux}`\n"
                         f"━━━━━━━━━━━━━━━━━━━━━━━\n"
                     )
-                title = "💎 Precios Especiales / Special Prices"
+                title = "💎 Precios Especiales / Special Prices (20% OFF)"
                 descripcion = (
-                    "Valores especiales para compras grandes.\n"
-                    "Special values for large purchases.\n\n"
-                    "🎯 **Tasa Especial / Special Rate:** `100,000 Coins = 0.70 USD = 98 Robux`\n"
-                    "✅ Aplica desde 1.5M Coins en adelante"
+                    "Valores especiales para compras grandes con **20% de descuento**.\n"
+                    "Special values for large purchases with **20% OFF**.\n\n"
+                    "🎯 **Tasa Especial / Special Rate:** `100,000 Coins ≈ 1.20 USD → 0.96 USD`\n"
+                    "✅ Aplica desde 1.6M Coins en adelante"
                 )
 
             embed = discord.Embed(
@@ -757,6 +757,7 @@ async def precios(interaction: discord.Interaction):
         view=view,
         ephemeral=False
     )
+
 
 
 @tree.command(
