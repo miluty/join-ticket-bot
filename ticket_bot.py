@@ -143,7 +143,7 @@ class SaleModal(discord.ui.Modal, title="🛒 Detalles de la Compra / Purchase D
         # Calcular precios
         usd = robux = 0
         if self.producto == "coins":
-            usd = round(cantidad / 50000, 1)
+            usd = round(cantidad / 50000, 0.65)
             robux = round(usd * 160)
         elif self.producto == "fruit":
             usd = round((cantidad / 100000) * 2, 2)
@@ -682,7 +682,7 @@ async def precios(interaction: discord.Interaction):
                 tabla = ""
                 for i in range(1, 21):  # 50k a 1M
                     coins = 50000 * i
-                    usd = round(0.80 * i, 2)
+                    usd = round(0.65 * i, 2)
                     robux = 160 * i
                     tabla += (
                         f"🪙 **{coins:,} Coins**\n"
@@ -701,8 +701,8 @@ async def precios(interaction: discord.Interaction):
                 tabla = ""
                 for i in range(30, 61, 5):  # 1.5M a 3M en saltos de 250k
                     coins = 50000 * i
-                    usd_base = 0.80 * i
-                    usd_desc = round(usd_base * 0.85, 2)  # 15% descuento
+                    usd_base = 0.65 * i
+                    usd_desc = round(usd_base * 0.70, 2)  # 15% descuento
                     robux = 160 * i
                     tabla += (
                         f"✨ **{coins:,} Coins**\n"
